@@ -1,0 +1,9 @@
+node_modules/
+.next/
+.env.local
+pocketbase/pb_data/
+pocketbase/bin/
+.impeccable/review/
+.claude/settings.local.json
+*.tsbuildinfo
+.DS_Store

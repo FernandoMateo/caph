@@ -1,0 +1,26 @@
+{
+    "name":  "caph-santa-fe",
+    "version":  "0.1.0",
+    "private":  true,
+    "scripts":  {
+                    "dev":  "next dev",
+                    "build":  "next build",
+                    "start":  "next start",
+                    "pb":  "pocketbase/bin/pocketbase.exe serve --http=127.0.0.1:8090 --dir pocketbase/pb_data --migrationsDir pocketbase/pb_migrations"
+                },
+    "dependencies":  {
+                         "next":  "^15.5.28",
+                         "pocketbase":  "^0.28.1",
+                         "react":  "^19.3.1",
+                         "react-dom":  "^19.3.1",
+                         "server-only":  "^0.0.1",
+                         "three":  "^0.169.0"
+                     },
+    "devDependencies":  {
+                            "@types/node":  "^26.6.5",
+                            "@types/react":  "^19.3.0",
+                            "@types/react-dom":  "^19.3.0",
+                            "@types/three":  "^0.169.0",
+                            "typescript":  "5.9"
+                        }
+}
