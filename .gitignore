@@ -12,3 +12,4 @@ pocketbase/pocketbase.exe
 pocketbase/pocketbase
 deploy/activar-auto-deploy.ps1
 deploy/tunel-vps.ps1
+deploy/crear-superusuario.ps1
