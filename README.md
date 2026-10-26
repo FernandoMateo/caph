@@ -120,6 +120,30 @@ sudo certbot --nginx -d caphsf.ar -d www.caphsf.ar -d api.caphsf.ar
 
 Todo el contenido (datos, PDFs, fotos y logos) vive en `/opt/caph/pocketbase/pb_data`. En el dashboard de PocketBase → **Settings → Backups** se pueden programar copias automáticas; conviene además copiar esa carpeta fuera del servidor.
 
+## Despliegue automático (push → VPS)
+
+Cada `git push` a `main` actualiza el VPS solo: GitHub Actions (`.github/workflows/deploy.yml`) entra por SSH y corre `deploy/deploy.sh`, que baja el código, compila y reinicia la web (y PocketBase si cambiaron las migraciones). El avance se ve en la pestaña **Actions** del repo.
+
+Puesta en marcha (una sola vez):
+
+1. Desde Windows (PowerShell), autorizar la clave de despliegue en el VPS (pide la contraseña del VPS una vez):
+   ```powershell
+   type $env:USERPROFILE\.ssh\mateo_deploy_key.pub | ssh -p PUERTO USUARIO@IP_DEL_VPS "mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+   ```
+2. En el VPS, con el usuario de despliegue (no root), instalar todo con los dominios reales (pide la contraseña de sudo):
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/FernandoMateo/caph/main/deploy/setup-vps.sh | sudo bash -s -- caphsf.ar api.caphsf.ar
+   ```
+   Al terminar indica los pasos que faltan (DNS, certbot y superusuario).
+3. En GitHub → repo → **Settings → Secrets and variables → Actions → New repository secret**, cargar:
+   - `VPS_HOST`: IP del VPS
+   - `VPS_USER`: usuario de despliegue
+   - `VPS_PORT`: puerto SSH
+   - `VPS_SSH_KEY`: el contenido completo de la clave **privada** (`mateo_deploy_key`)
+4. Probar desde **Actions → Desplegar en el VPS → Run workflow**.
+
+Para volver a una versión anterior: `git revert` del commit problemático y `git push`.
+
 ## Pendientes de contenido
 
 - Validador de asociados: usa datos de ejemplo (`lib/data.ts`, `PADRON_DEMO`) hasta conectar el padrón real.
