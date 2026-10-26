@@ -10,3 +10,4 @@ pocketbase/bin/
 
 pocketbase/pocketbase.exe
 pocketbase/pocketbase
+deploy/activar-auto-deploy.ps1

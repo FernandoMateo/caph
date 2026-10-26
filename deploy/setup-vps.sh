@@ -91,8 +91,7 @@ systemctl daemon-reload
 systemctl enable --now caph-pocketbase caph-web
 
 # Revisar GitHub cada minuto y desplegar si hay commits nuevos
-CRON_LINE="* * * * * flock -n /tmp/caph-deploy.lock bash $BASE/web/deploy/check-update.sh >> $BASE/deploy.log 2>&1"
-(as_deploy crontab -l 2>/dev/null | grep -v check-update.sh; echo "$CRON_LINE") | as_deploy crontab -
+as_deploy bash "$BASE/web/deploy/install-cron.sh"
 
 echo
 echo "Listo: web en el puerto $WEB_PORT y PocketBase en el $PB_PORT."

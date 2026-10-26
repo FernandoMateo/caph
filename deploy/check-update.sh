@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Lo corre cron cada minuto en el VPS: si main tiene commits nuevos en GitHub, despliega.
-# Instalado con: (crontab -l; echo '* * * * * flock -n /tmp/caph-deploy.lock bash /opt/caph/web/deploy/check-update.sh >> /opt/caph/deploy.log 2>&1') | crontab -
+# Se activa con deploy/install-cron.sh.
 set -euo pipefail
 
 cd /opt/caph/web
