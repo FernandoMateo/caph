@@ -1,18 +1,22 @@
 #!/usr/bin/env bash
 # Instalación inicial del VPS (Ubuntu 24). Se corre UNA sola vez, con el usuario de despliegue y sudo:
-#   curl -fsSL https://raw.githubusercontent.com/FernandoMateo/caph/main/deploy/setup-vps.sh | sudo bash -s -- caphsf.ar api.caphsf.ar
+#   sudo bash setup-vps.sh https://api.caphsf.ar
+# El argumento es la URL pública con la que el navegador llega a PocketBase.
+# No instala nginx: los dominios y el HTTPS los pone el proxy del proveedor, que reenvía
+# cada dominio a un puerto de este VPS (web → WEB_PORT, PocketBase → PB_PORT).
 # Después, cada push a main se despliega solo (ver .github/workflows/deploy.yml).
 set -euo pipefail
 
-WEB_DOMAIN="${1:-caphsf.ar}"
-API_DOMAIN="${2:-api.caphsf.ar}"
+PUBLIC_PB_URL="${1:-https://api.caphsf.ar}"
+WEB_PORT=3000
+PB_PORT=8091   # el 8090 ya lo usa otro sistema en este VPS
 DEPLOY_USER="${SUDO_USER:-administrator}"
 REPO="https://github.com/FernandoMateo/caph.git"
 PB_VERSION="0.40.6"
 BASE=/opt/caph
 
 apt-get update
-apt-get install -y curl git unzip rsync nginx certbot python3-certbot-nginx
+apt-get install -y curl git unzip rsync
 
 # Node.js 22
 if ! command -v node >/dev/null || [ "$(node -v | cut -d. -f1 | tr -d v)" -lt 20 ]; then
@@ -27,7 +31,7 @@ as_deploy() { sudo -u "$DEPLOY_USER" -H "$@"; }
 
 [ -d "$BASE/web/.git" ] || as_deploy git clone "$REPO" "$BASE/web"
 if [ ! -f "$BASE/web/.env.local" ]; then
-  as_deploy bash -c "printf 'PB_URL=http://127.0.0.1:8090\nNEXT_PUBLIC_PB_URL=https://%s\n' '$API_DOMAIN' > '$BASE/web/.env.local'"
+  as_deploy bash -c "printf 'PB_URL=http://127.0.0.1:$PB_PORT\nNEXT_PUBLIC_PB_URL=%s\n' '$PUBLIC_PB_URL' > '$BASE/web/.env.local'"
 fi
 
 # PocketBase
@@ -45,7 +49,7 @@ After=network.target
 
 [Service]
 WorkingDirectory=$BASE/pocketbase
-ExecStart=$BASE/pocketbase/pocketbase serve --http=127.0.0.1:8090
+ExecStart=$BASE/pocketbase/pocketbase serve --http=0.0.0.0:$PB_PORT
 Restart=always
 User=$DEPLOY_USER
 
@@ -60,7 +64,7 @@ After=network.target caph-pocketbase.service
 
 [Service]
 WorkingDirectory=$BASE/web
-ExecStart=/usr/bin/npm run start -- -p 3000
+ExecStart=/usr/bin/npm run start -- -p $WEB_PORT -H 0.0.0.0
 Restart=always
 Environment=NODE_ENV=production
 User=$DEPLOY_USER
@@ -76,20 +80,10 @@ EOF
 chmod 440 /etc/sudoers.d/caph-deploy
 visudo -cf /etc/sudoers.d/caph-deploy
 
-# nginx
-cat > /etc/nginx/sites-available/caph <<EOF
-server {
-  server_name $WEB_DOMAIN www.$WEB_DOMAIN;
-  location / { proxy_pass http://127.0.0.1:3000; proxy_set_header Host \$host; proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto \$scheme; }
-}
-server {
-  server_name $API_DOMAIN;
-  client_max_body_size 20M;
-  location / { proxy_pass http://127.0.0.1:8090; proxy_set_header Host \$host; proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto \$scheme; }
-}
-EOF
-ln -sf /etc/nginx/sites-available/caph /etc/nginx/sites-enabled/caph
-nginx -t && systemctl reload nginx
+if ufw status | grep -q "Status: active"; then
+  ufw allow "$WEB_PORT/tcp"
+  ufw allow "$PB_PORT/tcp"
+fi
 
 # Primera compilación y arranque
 as_deploy bash "$BASE/web/deploy/deploy.sh"
@@ -97,7 +91,8 @@ systemctl daemon-reload
 systemctl enable --now caph-pocketbase caph-web
 
 echo
-echo "Listo. Falta:"
-echo "  1. Apuntar los DNS de $WEB_DOMAIN, www.$WEB_DOMAIN y $API_DOMAIN a este servidor."
-echo "  2. sudo certbot --nginx -d $WEB_DOMAIN -d www.$WEB_DOMAIN -d $API_DOMAIN"
-echo "  3. $BASE/pocketbase/pocketbase superuser upsert TU_EMAIL TU_CONTRASEÑA --dir $BASE/pocketbase/pb_data"
+echo "Listo: web en el puerto $WEB_PORT y PocketBase en el $PB_PORT."
+echo "Falta:"
+echo "  1. En el panel del proveedor, conectar el dominio de la web al puerto $WEB_PORT y el de PocketBase al $PB_PORT."
+echo "  2. Crear el superusuario:"
+echo "     $BASE/pocketbase/pocketbase superuser upsert TU_EMAIL TU_CONTRASEÑA --dir $BASE/pocketbase/pb_data"

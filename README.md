@@ -130,11 +130,11 @@ Puesta en marcha (una sola vez):
    ```powershell
    type $env:USERPROFILE\.ssh\mateo_deploy_key.pub | ssh -p PUERTO USUARIO@IP_DEL_VPS "mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
    ```
-2. En el VPS, con el usuario de despliegue (no root), instalar todo con los dominios reales (pide la contraseña de sudo):
+2. En el VPS, con el usuario de despliegue (no root), instalar todo pasando la URL pública de PocketBase (pide la contraseña de sudo):
    ```bash
-   curl -fsSL https://raw.githubusercontent.com/FernandoMateo/caph/main/deploy/setup-vps.sh | sudo bash -s -- caphsf.ar api.caphsf.ar
+   curl -fsSL https://raw.githubusercontent.com/FernandoMateo/caph/main/deploy/setup-vps.sh -o /tmp/setup-vps.sh && sudo bash /tmp/setup-vps.sh https://api.caphsf.ar
    ```
-   Al terminar indica los pasos que faltan (DNS, certbot y superusuario).
+   Deja la web en el puerto 3000 y PocketBase en el 8091, sin nginx: en el VPS actual los dominios y el HTTPS los pone el proxy del proveedor, que se configura en su panel (dominio → puerto). Al terminar indica los pasos que faltan.
 3. En GitHub → repo → **Settings → Secrets and variables → Actions → New repository secret**, cargar:
    - `VPS_HOST`: IP del VPS
    - `VPS_USER`: usuario de despliegue
