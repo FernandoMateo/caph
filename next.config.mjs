@@ -15,7 +15,8 @@ const nextConfig = {
   async rewrites() {
     return [
       { source: "/api/:path*", destination: `${pbUrl}/api/:path*` },
-      { source: "/_/:path*", destination: `${pbUrl}/_/:path*` },
+      { source: "/_/", destination: `${pbUrl}/_/` },
+      { source: "/_/:path+", destination: `${pbUrl}/_/:path+` },
     ];
   },
 };
