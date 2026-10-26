@@ -1,14 +1,12 @@
 #!/usr/bin/env bash
 # Instalación inicial del VPS (Ubuntu 24). Se corre UNA sola vez, con el usuario de despliegue y sudo:
-#   sudo bash setup-vps.sh https://caphsf.ar
-# El argumento es la URL pública con la que el navegador llega a PocketBase: puede ser la de la
-# propia web, porque Next reenvía /api y /_/ a PocketBase (ver next.config.mjs).
+#   sudo bash setup-vps.sh
+# El navegador nunca habla directo con PocketBase: Next le reenvía /api y /_/ (ver next.config.mjs).
 # No instala nginx: los dominios y el HTTPS los pone el proxy del proveedor, que reenvía
 # cada dominio a un puerto de este VPS (web → WEB_PORT, PocketBase → PB_PORT).
 # Después, cada push a main se despliega solo en uno o dos minutos (ver deploy/check-update.sh).
 set -euo pipefail
 
-PUBLIC_PB_URL="${1:-https://api.caphsf.ar}"
 WEB_PORT=3000
 PB_PORT=8091   # el 8090 ya lo usa otro sistema en este VPS
 DEPLOY_USER="${SUDO_USER:-administrator}"
@@ -32,7 +30,7 @@ as_deploy() { sudo -u "$DEPLOY_USER" -H "$@"; }
 
 [ -d "$BASE/web/.git" ] || as_deploy git clone "$REPO" "$BASE/web"
 if [ ! -f "$BASE/web/.env.local" ]; then
-  as_deploy bash -c "printf 'PB_URL=http://127.0.0.1:$PB_PORT\nNEXT_PUBLIC_PB_URL=%s\n' '$PUBLIC_PB_URL' > '$BASE/web/.env.local'"
+  as_deploy bash -c "printf 'PB_URL=http://127.0.0.1:$PB_PORT\n' > '$BASE/web/.env.local'"
 fi
 
 # PocketBase

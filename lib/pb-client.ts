@@ -2,12 +2,13 @@
 
 import PocketBase, { ClientResponseError } from "pocketbase";
 
-// Cliente del panel: corre en el navegador y habla directo con PocketBase.
+// Cliente del panel: corre en el navegador y habla con PocketBase a través de la propia web
+// (next.config.mjs reenvía /api), así funciona con cualquier dominio o túnel sin configurar nada.
 let client: PocketBase | null = null;
 
 export function pb() {
   if (!client) {
-    client = new PocketBase(process.env.NEXT_PUBLIC_PB_URL || "http://127.0.0.1:8090");
+    client = new PocketBase(typeof window === "undefined" ? "http://127.0.0.1:8090" : window.location.origin);
     client.autoCancellation(false);
   }
   return client;

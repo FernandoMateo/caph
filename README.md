@@ -22,14 +22,14 @@ pocketbase/pb_migrations/   colecciones, reglas de acceso y carga inicial
    bin\pocketbase.exe superuser upsert TU_EMAIL TU_CONTRASEÑA --dir pb_data
    bin\pocketbase.exe serve --http=127.0.0.1:8090 --dir pb_data --migrationsDir pb_migrations
    ```
-3. Copiar `.env.example` a `.env.local` con `PB_URL` y `NEXT_PUBLIC_PB_URL` en `http://127.0.0.1:8090`.
+3. Copiar `.env.example` a `.env.local` (`PB_URL=http://127.0.0.1:8090`).
 4. `npm install` y `npm run dev` → http://localhost:3000 y http://localhost:3000/admin
 
 ## Usuarios del panel
 
 Los usuarios del panel son registros de la colección **users** de PocketBase (no se pueden registrar solos).
 
-1. Entrar al dashboard de PocketBase: `https://api.caphsf.ar/_/` (o `http://127.0.0.1:8090/_/` en local) con el superusuario.
+1. Entrar al dashboard de PocketBase: `https://caphsf.ar/_/` (la web lo reenvía; en local `http://127.0.0.1:8090/_/`) con el superusuario.
 2. Colección **users** → **New record** → email, contraseña y marcar **verified**.
 3. Esa persona entra en `https://caphsf.ar/admin`.
 
@@ -72,8 +72,8 @@ Las migraciones se aplican solas al arrancar.
 
 ```bash
 cd /opt/caph/web            # el repo
-cp .env.example .env.local  # PB_URL=http://127.0.0.1:8090 · NEXT_PUBLIC_PB_URL=https://api.caphsf.ar
-npm ci && npm run build     # NEXT_PUBLIC_PB_URL se fija al compilar: si cambia, volver a compilar
+cp .env.example .env.local  # PB_URL=http://127.0.0.1:8090
+npm ci && npm run build
 ```
 
 `/etc/systemd/system/caph-web.service`:
@@ -130,9 +130,9 @@ Puesta en marcha (una sola vez):
    ```powershell
    type $env:USERPROFILE\.ssh\mateo_deploy_key.pub | ssh -p PUERTO USUARIO@IP_DEL_VPS "mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
    ```
-2. En el VPS, con el usuario de despliegue (no root), instalar todo pasando la URL pública de PocketBase (pide la contraseña de sudo):
+2. En el VPS, con el usuario de despliegue (no root), instalar todo (pide la contraseña de sudo):
    ```bash
-   curl -fsSL https://raw.githubusercontent.com/FernandoMateo/caph/main/deploy/setup-vps.sh -o /tmp/setup-vps.sh && sudo bash /tmp/setup-vps.sh https://api.caphsf.ar
+   curl -fsSL https://raw.githubusercontent.com/FernandoMateo/caph/main/deploy/setup-vps.sh -o /tmp/setup-vps.sh && sudo bash /tmp/setup-vps.sh
    ```
    Deja la web en el puerto 3000 y PocketBase en el 8091, sin nginx: en el VPS actual los dominios y el HTTPS los pone el proxy del proveedor, que se configura en su panel (dominio → puerto). También programa el cron de actualización. Al terminar indica los pasos que faltan.
 

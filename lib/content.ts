@@ -16,7 +16,6 @@ import {
 } from "./data";
 
 const PB_URL = (process.env.PB_URL || "http://127.0.0.1:8090").replace(/\/$/, "");
-const PB_PUBLIC_URL = (process.env.NEXT_PUBLIC_PB_URL || PB_URL).replace(/\/$/, "");
 
 export type Categoria = {
   codigo: string;
@@ -84,7 +83,8 @@ const arr = <T,>(v: unknown, fallback: T[] = []): T[] => (Array.isArray(v) ? (v 
 const fileUrl = (r: PBRecord, field: string, thumb?: string) => {
   const f = str(r[field]);
   if (!f) return "";
-  const url = `${PB_PUBLIC_URL}/api/files/${r.collectionId}/${r.id}/${encodeURIComponent(f)}`;
+  // relativa: el navegador la pide a la web, que la reenvía a PocketBase (next.config.mjs)
+  const url = `/api/files/${r.collectionId}/${r.id}/${encodeURIComponent(f)}`;
   return thumb ? `${url}?thumb=${thumb}` : url;
 };
 

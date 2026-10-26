@@ -10,8 +10,7 @@ const nextConfig = {
   outputFileTracingRoot: root,
   // El dashboard de PocketBase vive en /_/ con barra final; sin esto Next la quita y entra en bucle.
   skipTrailingSlashRedirect: true,
-  // PocketBase detrás del mismo dominio que la web: alcanza con un solo dominio
-  // (NEXT_PUBLIC_PB_URL puede ser la URL pública de la propia web).
+  // PocketBase detrás del mismo dominio que la web: el navegador (panel, archivos) solo habla con la web.
   async rewrites() {
     return [
       { source: "/api/:path*", destination: `${pbUrl}/api/:path*` },
