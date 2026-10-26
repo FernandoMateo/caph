@@ -122,7 +122,7 @@ Todo el contenido (datos, PDFs, fotos y logos) vive en `/opt/caph/pocketbase/pb_
 
 ## Despliegue automático (push → VPS)
 
-Cada `git push` a `main` actualiza el VPS solo: GitHub Actions (`.github/workflows/deploy.yml`) entra por SSH y corre `deploy/deploy.sh`, que baja el código, compila y reinicia la web (y PocketBase si cambiaron las migraciones). El avance se ve en la pestaña **Actions** del repo.
+Cada `git push` a `main` llega al VPS solo en uno o dos minutos: un cron del usuario de despliegue corre `deploy/check-update.sh` cada minuto y, si hay commits nuevos, `deploy/deploy.sh` baja el código, compila y reinicia la web (y PocketBase si cambiaron las migraciones). No hace falta cargar secretos en GitHub. El registro queda en `/opt/caph/deploy.log` del VPS.
 
 Puesta en marcha (una sola vez):
 
@@ -134,13 +134,7 @@ Puesta en marcha (una sola vez):
    ```bash
    curl -fsSL https://raw.githubusercontent.com/FernandoMateo/caph/main/deploy/setup-vps.sh -o /tmp/setup-vps.sh && sudo bash /tmp/setup-vps.sh https://api.caphsf.ar
    ```
-   Deja la web en el puerto 3000 y PocketBase en el 8091, sin nginx: en el VPS actual los dominios y el HTTPS los pone el proxy del proveedor, que se configura en su panel (dominio → puerto). Al terminar indica los pasos que faltan.
-3. En GitHub → repo → **Settings → Secrets and variables → Actions → New repository secret**, cargar:
-   - `VPS_HOST`: IP del VPS
-   - `VPS_USER`: usuario de despliegue
-   - `VPS_PORT`: puerto SSH
-   - `VPS_SSH_KEY`: el contenido completo de la clave **privada** (`mateo_deploy_key`)
-4. Probar desde **Actions → Desplegar en el VPS → Run workflow**.
+   Deja la web en el puerto 3000 y PocketBase en el 8091, sin nginx: en el VPS actual los dominios y el HTTPS los pone el proxy del proveedor, que se configura en su panel (dominio → puerto). También programa el cron de actualización. Al terminar indica los pasos que faltan.
 
 Para volver a una versión anterior: `git revert` del commit problemático y `git push`.
 

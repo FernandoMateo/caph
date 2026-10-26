@@ -4,7 +4,7 @@
 # El argumento es la URL pública con la que el navegador llega a PocketBase.
 # No instala nginx: los dominios y el HTTPS los pone el proxy del proveedor, que reenvía
 # cada dominio a un puerto de este VPS (web → WEB_PORT, PocketBase → PB_PORT).
-# Después, cada push a main se despliega solo (ver .github/workflows/deploy.yml).
+# Después, cada push a main se despliega solo en uno o dos minutos (ver deploy/check-update.sh).
 set -euo pipefail
 
 PUBLIC_PB_URL="${1:-https://api.caphsf.ar}"
@@ -89,6 +89,10 @@ fi
 as_deploy bash "$BASE/web/deploy/deploy.sh"
 systemctl daemon-reload
 systemctl enable --now caph-pocketbase caph-web
+
+# Revisar GitHub cada minuto y desplegar si hay commits nuevos
+CRON_LINE="* * * * * flock -n /tmp/caph-deploy.lock bash $BASE/web/deploy/check-update.sh >> $BASE/deploy.log 2>&1"
+(as_deploy crontab -l 2>/dev/null | grep -v check-update.sh; echo "$CRON_LINE") | as_deploy crontab -
 
 echo
 echo "Listo: web en el puerto $WEB_PORT y PocketBase en el $PB_PORT."

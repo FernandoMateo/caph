@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Actualiza el VPS a la última versión de main. Lo corre GitHub Actions en cada push
-# con el usuario de despliegue (también se puede correr a mano: bash /opt/caph/web/deploy/deploy.sh).
+# Actualiza el VPS a la última versión de main. Lo corre deploy/check-update.sh cuando hay
+# commits nuevos (también se puede correr a mano: bash /opt/caph/web/deploy/deploy.sh).
 # Todo va dentro de main() para que bash lea el script entero antes de que git lo reemplace.
 set -euo pipefail
 
