@@ -7,3 +7,6 @@ pocketbase/bin/
 .claude/settings.local.json
 *.tsbuildinfo
 .DS_Store
+
+pocketbase/pocketbase.exe
+pocketbase/pocketbase
