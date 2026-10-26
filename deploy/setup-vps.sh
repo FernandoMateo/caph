@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Instalación inicial del VPS (Ubuntu 24). Se corre UNA sola vez, con el usuario de despliegue y sudo:
-#   sudo bash setup-vps.sh https://api.caphsf.ar
-# El argumento es la URL pública con la que el navegador llega a PocketBase.
+#   sudo bash setup-vps.sh https://caphsf.ar
+# El argumento es la URL pública con la que el navegador llega a PocketBase: puede ser la de la
+# propia web, porque Next reenvía /api y /_/ a PocketBase (ver next.config.mjs).
 # No instala nginx: los dominios y el HTTPS los pone el proxy del proveedor, que reenvía
 # cada dominio a un puerto de este VPS (web → WEB_PORT, PocketBase → PB_PORT).
 # Después, cada push a main se despliega solo en uno o dos minutos (ver deploy/check-update.sh).
