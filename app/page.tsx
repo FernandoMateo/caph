@@ -9,6 +9,8 @@ import { Validador } from "../components/Validador";
 import { LINKS, NOMBRE_LEGAL, RUBROS } from "../lib/data";
 import { getCapacitaciones, getGaleria, getHonorarios, getProveedores, type Capacitacion } from "../lib/content";
 import { Galeria3D } from "../components/Galeria3D";
+import { Intro } from "../components/Intro";
+import { Spotlight } from "../components/Spotlight";
 
 // Todo lo que se edita en el panel se lee en cada visita.
 export const dynamic = "force-dynamic";
@@ -70,14 +72,17 @@ export default async function Home() {
       <a href="#contenido" className="skip">
         Saltar al contenido
       </a>
+      <Intro />
       <Header />
       <Reveal />
+      <Spotlight />
 
       <main id="contenido">
         {/* Hero fijo: el contenido sube por encima como una hoja */}
         <section className="hero" id="inicio" aria-labelledby="hero-title">
           <HeroScene />
           <div className="hero__copy">
+            <p className="eyebrow hero__eyebrow">Cámara de la Propiedad Horizontal · Santa Fe</p>
             <h1 id="hero-title" className="hero__title">
               La fuerza de una profesión, <span>la fuerza de sus protagonistas.</span>
             </h1>
@@ -103,11 +108,14 @@ export default async function Home() {
           {/* ---------- HERRAMIENTAS ---------- */}
           <section className="block" id="herramientas" aria-labelledby="tools-title">
             <div className="wrap">
-              <h2 id="tools-title" className="h2" data-reveal>
-                Tus herramientas, <span className="muted">a un toque.</span>
-              </h2>
+              <div className="block__intro" data-reveal>
+                <p className="eyebrow">Herramientas</p>
+                <h2 id="tools-title" className="h2">
+                  Tus herramientas, <span className="muted">a un toque.</span>
+                </h2>
+              </div>
               <div className="bento">
-                <article className="tile tile--check" id="administradores" data-reveal>
+                <article className="tile tile--check" id="administradores" data-reveal data-glow>
                   <h3 className="tile__title">¿Sos asociado? Verificá tu estado</h3>
                   <p className="tile__text">
                     Buscá por nombre, DNI o número de asociado. Sirve también para que un consorcio confirme a su
@@ -116,7 +124,7 @@ export default async function Home() {
                   <Validador />
                 </article>
 
-                <a className="tile tile--navy tile--link" href="#honorarios" data-reveal style={delay(80)}>
+                <a className="tile tile--navy tile--link" href="#honorarios" data-reveal data-glow style={delay(80)}>
                   <h3 className="tile__period">
                     Honorarios <span>{hon.periodo}</span>
                   </h3>
@@ -126,7 +134,7 @@ export default async function Home() {
                   </span>
                 </a>
 
-                <a className="tile tile--sky tile--link" href="#proveedores" data-reveal style={delay(160)}>
+                <a className="tile tile--sky tile--link" href="#proveedores" data-reveal data-glow style={delay(160)}>
                   <h3 className="tile__title">Directorio de proveedores</h3>
                   <p className="tile__text">{verificados} empresas verificadas por la Cámara.</p>
                   <ul className="tile__chips" aria-label="Algunos rubros">
@@ -146,6 +154,7 @@ export default async function Home() {
           <section className="block" id="honorarios" aria-labelledby="hon-title">
             <div className="wrap">
               <header className="block__head" data-reveal>
+                <p className="eyebrow">Honorarios</p>
                 <h2 id="hon-title" className="h2">
                   Honorarios sugeridos <span className="muted">{hon.periodo.toLowerCase()}</span>
                 </h2>
@@ -162,7 +171,7 @@ export default async function Home() {
                 </div>
 
                 <div className="hon-tables" data-reveal style={delay(100)}>
-                  <div className="table-card">
+                  <div className="table-card" data-glow>
                     <table className="table">
                       <caption className="sr-only">Honorarios mensuales sugeridos por categoría, {hon.periodo}</caption>
                       <thead>
@@ -198,7 +207,7 @@ export default async function Home() {
                   </div>
 
                   <div className="hon-extra">
-                    <div className="soft-card">
+                    <div className="soft-card" data-glow>
                       <h3 className="h4">Tareas independientes</h3>
                       <ul className="price-list">
                         {hon.tareas.map((t) => (
@@ -212,7 +221,7 @@ export default async function Home() {
                         ))}
                       </ul>
                     </div>
-                    <div className="soft-card">
+                    <div className="soft-card" data-glow>
                       <h3 className="h4">Bonificaciones sugeridas</h3>
                       <ul className="price-list">
                         {hon.bonificaciones.map((b) => (
@@ -250,9 +259,12 @@ export default async function Home() {
             <div className="wrap">
               <div className="panel panel--navy">
                 <header className="block__head block__head--row" data-reveal>
-                  <h2 id="cap-title" className="h2">
-                    Capacitación continua
-                  </h2>
+                  <div>
+                    <p className="eyebrow">Capacitaciones</p>
+                    <h2 id="cap-title" className="h2">
+                      Capacitación continua
+                    </h2>
+                  </div>
                   <p className="lede">Cursos, talleres y programas para estar al día con la normativa y la gestión.</p>
                 </header>
 
@@ -355,6 +367,7 @@ export default async function Home() {
             <div className="wrap">
               <header className="block__head block__head--row" data-reveal>
                 <div>
+                  <p className="eyebrow">Proveedores</p>
                   <h2 id="prov-title" className="h2">
                     Empresas en las que confiamos
                   </h2>
@@ -381,6 +394,7 @@ export default async function Home() {
           <section className="block" id="quienes-somos" aria-labelledby="qs-title">
             <div className="wrap about">
               <div data-reveal>
+                <p className="eyebrow">La Cámara</p>
                 <h2 id="qs-title" className="h2">
                   Uniendo a la comunidad <span className="muted">de administradores.</span>
                 </h2>
@@ -392,18 +406,18 @@ export default async function Home() {
                 </p>
               </div>
               <ul className="services">
-                <li data-reveal>
+                <li data-reveal data-glow>
                   <h3 className="h3">Asesorías</h3>
                   <p>Soporte legal, técnico y contable para los asociados.</p>
                 </li>
-                <li data-reveal style={delay(80)}>
+                <li data-reveal data-glow style={delay(80)}>
                   <h3 className="h3">Mediaciones</h3>
                   <p>Un nexo imparcial para resolver conflictos entre las partes.</p>
                   <a href={LINKS.mediacionPdf} target="_blank" rel="noopener noreferrer" className="link-arrow">
                     Área de gestión y conciliación <Icon name="arrow" size={18} />
                   </a>
                 </li>
-                <li data-reveal style={delay(160)}>
+                <li data-reveal data-glow style={delay(160)}>
                   <h3 className="h3">Capacitaciones</h3>
                   <p>Formación técnica y académica constante.</p>
                   <a href="#capacitaciones" className="link-arrow">
@@ -420,9 +434,12 @@ export default async function Home() {
               <div className="wrap">
                 <div className="panel panel--navy panel--gallery">
                   <header className="block__head block__head--row" data-reveal>
-                    <h2 id="com-title" className="h2">
-                      Nuestra comunidad <span className="muted">administradores y representantes.</span>
-                    </h2>
+                    <div>
+                      <p className="eyebrow">Comunidad</p>
+                      <h2 id="com-title" className="h2">
+                        Nuestra comunidad <span className="muted">administradores y representantes.</span>
+                      </h2>
+                    </div>
                     <p className="lede">Encuentros, capacitaciones y el trabajo de quienes hacen la Cámara.</p>
                   </header>
                   <div data-reveal>
@@ -438,6 +455,7 @@ export default async function Home() {
             <div className="wrap">
               <div className="panel panel--navy join">
                 <div className="join__head" data-reveal>
+                  <p className="eyebrow">Asociate</p>
                   <h2 id="as-title" className="h2 h2--xl">
                     Sumá tu voz a la Cámara
                   </h2>
@@ -467,6 +485,7 @@ export default async function Home() {
             <div className="wrap">
               <div className="panel panel--soft conv">
                 <div data-reveal>
+                  <p className="eyebrow">Convocatoria</p>
                   <h2 id="conv-title" className="h2">
                     Convocatoria abierta a arquitectos matriculados
                   </h2>
@@ -501,7 +520,7 @@ export default async function Home() {
           <footer className="footer" id="contacto">
             <div className="wrap footer__grid">
               <div className="footer__brand">
-                <Logo ground="#171717" ink="#ffffff" className="footer__logo" />
+                <Logo ground="#02040f" ink="#ffffff" className="footer__logo" />
                 <p>{NOMBRE_LEGAL}</p>
               </div>
               <div>

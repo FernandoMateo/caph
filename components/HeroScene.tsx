@@ -207,7 +207,7 @@ export default function HeroScene() {
     sun.shadow.bias = -0.0004;
     sun.shadow.normalBias = 0.02;
     scene.add(sun);
-    const rim = new THREE.DirectionalLight(C.sky, 1.6);
+    const rim = new THREE.DirectionalLight(C.sky, 2.2);
     rim.position.set(10, 6, -10);
     scene.add(rim);
 
@@ -443,6 +443,67 @@ export default function HeroScene() {
     const ringMat = new THREE.LineBasicMaterial({ color: C.yellow, transparent: true, opacity: 0, toneMapped: false });
     model.add(new THREE.LineSegments(ringGeo, ringMat));
 
+    // línea de luz que recorre la torre de abajo hacia arriba (mismo lenguaje que la intro)
+    const scanPts: number[] = [];
+    const sw = (w + 0.62) / 2;
+    const sd = (d + 0.62) / 2;
+    [
+      [-sw, -sd, sw, -sd],
+      [sw, -sd, sw, sd],
+      [sw, sd, -sw, sd],
+      [-sw, sd, -sw, -sd],
+    ].forEach(([a, b, c2, e]) => scanPts.push(a, 0, b, c2, 0, e));
+    const scanGeo = new THREE.BufferGeometry();
+    scanGeo.setAttribute("position", new THREE.Float32BufferAttribute(scanPts, 3));
+    const scanMat = new THREE.LineBasicMaterial({
+      color: 0xdff4fb,
+      transparent: true,
+      opacity: 0,
+      toneMapped: false,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const scan = new THREE.LineSegments(scanGeo, scanMat);
+    model.add(scan);
+    // halo del anillo: un plano tenue que acompaña la línea
+    const haloMat = new THREE.MeshBasicMaterial({
+      color: C.sky,
+      transparent: true,
+      opacity: 0,
+      toneMapped: false,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+    const halo = new THREE.Mesh(new THREE.PlaneGeometry(w + 0.62, d + 0.62), haloMat);
+    halo.rotation.x = -Math.PI / 2;
+    model.add(halo);
+
+    // barrido de luz sobre la pantalla-plano
+    const sweepCanvas = document.createElement("canvas");
+    sweepCanvas.width = 256;
+    sweepCanvas.height = 4;
+    const sctx = sweepCanvas.getContext("2d")!;
+    const sg = sctx.createLinearGradient(0, 0, 256, 0);
+    sg.addColorStop(0, "rgba(126,182,200,0)");
+    sg.addColorStop(0.5, "rgba(223,244,251,1)");
+    sg.addColorStop(1, "rgba(126,182,200,0)");
+    sctx.fillStyle = sg;
+    sctx.fillRect(0, 0, 256, 4);
+    const sweepTex = new THREE.CanvasTexture(sweepCanvas);
+    const sweepMat = new THREE.MeshBasicMaterial({
+      map: sweepTex,
+      transparent: true,
+      opacity: 0,
+      toneMapped: false,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const sweep = new THREE.Mesh(new THREE.PlaneGeometry(0.9, SCREEN.d), sweepMat);
+    sweep.rotation.x = -Math.PI / 2;
+    sweep.position.y = 0.006;
+    model.add(sweep);
+
     // ---------- ciudad al fondo
     const city = new THREE.Group();
     scene.add(city);
@@ -538,7 +599,13 @@ export default function HeroScene() {
     const STEP = 0.13;
     const RISE = STEP * (levels.length - 1);
     const LIGHTS = RISE + 0.4;
-    const start = performance.now() + 300;
+    // con intro, la torre espera a que la intro se vaya (components/Intro.tsx avisa con caph:intro-done)
+    const introOn = document.documentElement.dataset.intro === "on";
+    let start = performance.now() + (introOn ? 60_000 : 300);
+    const onIntroDone = () => (start = performance.now() + 150);
+    window.addEventListener("caph:intro-done", onIntroDone, { once: true });
+    const SCAN_EVERY = 5.5;
+    const SCAN_RUN = 2.4;
     let raf = 0;
     const towerHidden = -(towerTop + 0.9);
     let windowsDone = false;
@@ -574,6 +641,21 @@ export default function HeroScene() {
         if (k >= 1) windowsDone = true;
       }
 
+      // una vez en pie, la línea de luz sube por la torre cada tanto y la pantalla se barre
+      if (!reduced && t > LIGHTS) {
+        const c = ((t - LIGHTS) % SCAN_EVERY) / SCAN_RUN;
+        if (c < 1) {
+          const env = Math.sin(c * Math.PI);
+          scan.position.y = halo.position.y = 0.05 + easeOutCubic(c) * (towerTop + 0.7);
+          scanMat.opacity = env * 0.95;
+          haloMat.opacity = env * 0.08;
+          sweep.position.x = -SCREEN.w / 2 + c * SCREEN.w;
+          sweepMat.opacity = env * 0.5;
+        } else {
+          scanMat.opacity = haloMat.opacity = sweepMat.opacity = 0;
+        }
+      }
+
       const idle = reduced ? 0 : t;
       // el scroll gira la maqueta y la acerca mientras la hoja de contenido la cubre
       sp += (scrollP - sp) * 0.12;
@@ -605,6 +687,8 @@ export default function HeroScene() {
       io.disconnect();
       window.removeEventListener("pointermove", onPointer);
       window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("caph:intro-done", onIntroDone);
+      sweepTex.dispose();
       scene.traverse((o) => {
         const mesh = o as THREE.Mesh;
         mesh.geometry?.dispose();

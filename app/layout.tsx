@@ -21,9 +21,15 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+// Antes de pintar: la intro solo en la home, la primera visita de la sesión y sin "reducir movimiento".
+const introScript = `try{var d=document.documentElement;d.dataset.intro=location.pathname==="/"&&!location.hash&&!sessionStorage.getItem("caph-intro")&&!matchMedia("(prefers-reduced-motion: reduce)").matches?"on":"off"}catch(e){}`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es-AR" className={geist.variable}>
+    <html lang="es-AR" className={geist.variable} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: introScript }} />
+      </head>
       <body>{children}</body>
     </html>
   );
