@@ -10,6 +10,7 @@ components/          componentes de la web y del panel (components/admin)
 lib/content.ts       lectura de PocketBase en el servidor (+ respaldo)
 lib/pb-client.ts     cliente PocketBase del panel (navegador)
 pocketbase/pb_migrations/   colecciones, reglas de acceso y carga inicial
+pocketbase/pb_hooks/        lógica de la contabilidad (cuotas, imputación de pagos, mora)
 ```
 
 ## Desarrollo local (Windows)
@@ -24,6 +25,15 @@ pocketbase/pb_migrations/   colecciones, reglas de acceso y carga inicial
    ```
 3. Copiar `.env.example` a `.env.local` (`PB_URL=http://127.0.0.1:8090`).
 4. `npm install` y `npm run dev` → http://localhost:3000 y http://localhost:3000/admin
+
+## Contabilidad (cuotas de proveedores)
+
+En `/admin/contabilidad`. Nada de esto es público: solo lo ven los usuarios del panel.
+
+- **Alta:** al crear un proveedor se carga su cuota mensual, la inscripción (opcional), la fecha de alta y el día de vencimiento (por defecto, el día del alta). A los proveedores que ya existían se les da de alta la cuota desde Contabilidad.
+- **Cuotas:** `pocketbase/pb_hooks` genera una por mes desde el mes del alta; vence el día elegido (en meses más cortos, el último día). Se generan con el cron diario de PocketBase y cada vez que se abre Contabilidad. Cambiar el monto o el día afecta solo a las cuotas que todavía no vencieron; una cuota puntual se puede ajustar a mano (por ejemplo, bonificarla).
+- **Pagos:** se registran con fecha, monto, medio y comprobante. Se imputan solos a las cuotas más viejas, así que sirven pagos parciales o de varios meses juntos.
+- **Mora:** si una cuota sigue impaga 1 mes y 10 días después de su vencimiento, el proveedor se oculta de la web (`oculto_mora`); vuelve a aparecer solo cuando se registra el pago. No hay recargos.
 
 ## Usuarios del panel
 
