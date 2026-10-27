@@ -2425,6 +2425,29 @@ input::placeholder {
   line-height: 1.6;
   color: #8f99b3;
 }
+.footer__admin {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 44px;
+  padding: 0 1.1rem;
+  border: 1px solid rgba(148, 180, 220, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 0.875rem;
+  color: #c9d1e2;
+  text-decoration: none;
+  transition: color 0.2s var(--ease), border-color 0.2s var(--ease), background-color 0.2s var(--ease);
+}
+.footer__admin svg {
+  color: var(--sky);
+}
+.footer__admin:hover {
+  color: var(--yellow);
+  border-color: rgba(255, 210, 63, 0.45);
+  background: rgba(255, 255, 255, 0.07);
+}
 .footer__logo {
   height: 76px;
   width: auto;

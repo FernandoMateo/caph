@@ -39,6 +39,12 @@ const PATHS: Record<string, React.ReactNode> = {
       <circle cx="17.3" cy="6.7" r="0.6" fill="currentColor" />
     </>
   ),
+  lock: (
+    <>
+      <rect x="5" y="10.5" width="14" height="10" rx="2" />
+      <path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3" />
+    </>
+  ),
   menu: <path d="M4 7h16M4 12h16M4 17h16" />,
   calendar: (
     <>
