@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Presupuesto · Mateo Micropisos & Revestimientos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --oscuro:#3D3D3D; --cemento:#8E8E8E; --beige:#EAE6DF; --blanco:#FFFFFF;
+    --linea:#E2DDD4; --suave:#F6F4F0;
+  }
+  @page{ size:A4; margin:0 }
+  *{ box-sizing:border-box; margin:0; padding:0 }
+  html,body{ background:var(--blanco) }
+  body{ font-family:'Roboto',sans-serif; color:var(--oscuro); -webkit-print-color-adjust:exact; print-color-adjust:exact }
+  .hoja{ width:210mm; height:297mm; position:relative; overflow:hidden; padding:18mm 18mm 0 }
+
+  /* franja lateral */
+  .hoja::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:6mm; background:var(--oscuro) }
+  .hoja::after{ content:""; position:absolute; left:6mm; top:0; bottom:0; width:1.2mm; background:var(--beige) }
+
+  /* encabezado en gris cemento, el fondo para el que está pensado el logo */
+  header{ display:flex; justify-content:space-between; align-items:center;
+          margin:-18mm -18mm 0 -10.8mm; padding:11mm 18mm 11mm 10.8mm; background:#A3A19D }
+  .logo{ display:flex; align-items:center; gap:3.5mm }
+  .logo img{ height:24mm; width:auto; display:block }
+  .marca{ font-family:'Montserrat',sans-serif; line-height:1.05; color:#F7F3EA }
+  .marca .l1{ font-size:18pt; letter-spacing:-.2pt }
+  .marca .l1 b{ font-weight:700; color:var(--oscuro) }
+  .marca .l1 span{ font-weight:500 }
+  .marca .l2{ font-size:12.5pt; font-weight:400; margin-top:1mm }
+
+  .doc{ text-align:right; font-family:'Montserrat',sans-serif }
+  .doc .tit{ font-size:22pt; font-weight:600; letter-spacing:3pt; text-transform:uppercase; color:var(--blanco) }
+  .doc .meta{ margin-top:3mm; font-family:'Roboto'; font-size:8.5pt; color:var(--beige); line-height:1.7 }
+  .doc .meta strong{ color:var(--blanco); font-weight:500 }
+
+  .sep{ height:0; margin:0 0 10mm }
+
+  .datos{ display:grid; grid-template-columns:1fr 1fr; gap:10mm }
+  .etq{ font-family:'Montserrat'; font-size:7pt; font-weight:600; letter-spacing:1.6pt; text-transform:uppercase; color:var(--cemento); margin-bottom:2.5mm }
+  .datos p{ font-size:9.5pt; line-height:1.65 }
+  .datos p strong{ font-weight:500 }
+  .campo{ display:flex; gap:2mm; font-size:9.5pt; line-height:1.65 }
+  .campo span:first-child{ color:var(--cemento); width:19mm; flex:none }
+  .campo span:last-child{ flex:1; border-bottom:.25mm solid var(--linea); min-height:5.2mm }
+
+  table{ width:100%; border-collapse:collapse; margin-top:12mm }
+  thead th{ font-family:'Montserrat'; font-size:7pt; font-weight:600; letter-spacing:1.4pt; text-transform:uppercase;
+            color:var(--blanco); background:var(--oscuro); padding:3.4mm 4mm; text-align:left }
+  thead th.n{ text-align:right; white-space:nowrap }
+  tbody td{ padding:5mm 4mm; border-bottom:.3mm solid var(--linea); font-size:9.5pt; vertical-align:top }
+  tbody td.n{ text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums }
+  tbody tr:nth-child(even) td{ background:var(--suave) }
+  .item{ font-family:'Montserrat'; font-weight:600; font-size:10pt }
+  .desc{ color:var(--cemento); font-size:8.5pt; margin-top:1.2mm; font-weight:300 }
+  .num{ font-family:'Montserrat'; font-weight:600; color:var(--cemento); font-size:9pt }
+
+  .totales{ display:flex; justify-content:space-between; align-items:flex-end; margin-top:7mm }
+  .qr{ display:flex; align-items:center; gap:4.5mm; width:76mm; padding:4mm; border:.3mm solid var(--linea) }
+  .qr img{ width:24mm; height:24mm; display:block; flex:none }
+  .qr .etq{ margin-bottom:1.5mm; color:var(--oscuro) }
+  .qr p{ font-size:8pt; line-height:1.5; color:#6b6b6b }
+  .qr p.tel{ margin-top:1.5mm; font-family:'Montserrat'; font-weight:600; color:var(--oscuro) }
+  .totales .caja{ width:86mm }
+  .fila{ display:flex; justify-content:space-between; font-size:9.5pt; padding:2.2mm 4mm; font-variant-numeric:tabular-nums }
+  .fila span:first-child{ color:var(--cemento) }
+  .total{ margin-top:2mm; background:var(--beige); padding:5mm 4mm; display:flex; justify-content:space-between; align-items:baseline;
+          border-left:1.6mm solid var(--oscuro) }
+  .total span:first-child{ font-family:'Montserrat'; font-size:8pt; font-weight:600; letter-spacing:1.8pt; text-transform:uppercase }
+  .total span:last-child{ font-family:'Montserrat'; font-size:19pt; font-weight:700; font-variant-numeric:tabular-nums }
+
+  .notas{ margin-top:13mm; display:grid; grid-template-columns:1.35fr 1fr; gap:12mm; align-items:end }
+  .notas ul{ list-style:none; font-size:8.5pt; color:#6b6b6b; line-height:1.75 }
+  .notas li{ padding-left:4mm; position:relative }
+  .notas li::before{ content:""; position:absolute; left:0; top:2.1mm; width:1.6mm; height:1.6mm; background:var(--cemento); transform:rotate(45deg) }
+  .firma{ text-align:center }
+  .firma .rayita{ border-top:.3mm solid var(--oscuro); margin:0 4mm 2.5mm }
+  .firma .nom{ font-family:'Montserrat'; font-weight:600; font-size:9.5pt }
+  .firma .rol{ font-size:8pt; color:var(--cemento); margin-top:.6mm }
+
+  footer{ position:absolute; left:7.2mm; right:0; bottom:0; background:var(--oscuro); color:var(--beige);
+          padding:6mm 18mm 6mm 10.8mm; display:flex; justify-content:space-between; align-items:center; font-size:8.5pt }
+  footer .f-marca{ font-family:'Montserrat'; font-weight:600; letter-spacing:.4pt }
+  footer .f-datos{ display:flex; gap:8mm }
+  footer .f-datos span b{ font-family:'Montserrat'; font-weight:600; font-size:6.5pt; letter-spacing:1.4pt; color:var(--cemento); margin-right:2mm; text-transform:uppercase }
+</style>
+</head>
+<body>
+<div class="hoja">
+
+  <header>
+    <div class="logo">
+      <img src="logo-isotipo-sin-fondo.png" alt="Isotipo Mateo Micropisos">
+      <div class="marca">
+        <div class="l1"><b>Mateo</b> <span>Micropisos</span></div>
+        <div class="l2">y Revestimientos</div>
+      </div>
+    </div>
+
+    <div class="doc">
+      <div class="tit">Presupuesto</div>
+      <div class="meta">
+        N.º <strong>0113</strong><br>
+        Fecha <strong>26/10/2026</strong>
+      </div>
+    </div>
+  </header>
+
+  <div class="sep"></div>
+
+  <section class="datos">
+    <div>
+      <div class="etq">Emitido por</div>
+      <p><strong>Mateo Micropisos &amp; Revestimientos</strong><br>
+         Mateo Matías Iván<br>
+         +54 9 3518 07-2372<br>
+         www.mateopisos.com</p>
+    </div>
+  </section>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:9mm">#</th>
+        <th>Concepto</th>
+        <th class="n">Cantidad</th>
+        <th class="n">Precio unit.</th>
+        <th class="n">Importe</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="num">01</span></td>
+        <td><div class="item">Mano de obra</div><div class="desc">Aplicación de micropiso / revestimiento por metro cuadrado</div></td>
+        <td class="n">280 m²</td>
+        <td class="n">$ 40.000</td>
+        <td class="n">$ 11.200.000</td>
+      </tr>
+      <tr>
+        <td><span class="num">02</span></td>
+        <td><div class="item">Viáticos y traslado de personal</div><div class="desc">Costo diario por 20 días de obra</div></td>
+        <td class="n">20 días</td>
+        <td class="n">$ 80.000</td>
+        <td class="n">$ 1.600.000</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="totales">
+    <div class="qr">
+      <img src="qr-whatsapp-0113.svg" alt="QR para responder por WhatsApp">
+      <div>
+        <div class="etq">Responder cotización</div>
+        <p>Escaneá el código para confirmar o consultar este presupuesto por WhatsApp.</p>
+        <p class="tel">+54 9 3518 07-2372</p>
+      </div>
+    </div>
+    <div class="caja">
+      <div class="fila"><span>Mano de obra</span><span>$ 11.200.000</span></div>
+      <div class="fila"><span>Viáticos y traslado</span><span>$ 1.600.000</span></div>
+      <div class="total"><span>Total</span><span>$ 12.800.000</span></div>
+    </div>
+  </div>
+
+  <section class="notas">
+    <div>
+      <div class="etq">Observaciones</div>
+      <ul>
+        <li>Importes expresados en pesos argentinos (ARS).</li>
+        <li>El presupuesto comprende mano de obra y viáticos; no incluye materiales.</li>
+        <li>Superficie calculada: 280 m². Plazo estimado de trabajo: 20 días.</li>
+      </ul>
+    </div>
+    <div class="firma">
+      <div class="rayita"></div>
+      <div class="nom">Mateo Matías Iván</div>
+      <div class="rol">Mateo Micropisos &amp; Revestimientos</div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="f-marca">Mateo Micropisos &amp; Revestimientos</div>
+    <div class="f-datos">
+      <span><b>Tel</b>+54 9 3518 07-2372</span>
+      <span><b>Web</b>www.mateopisos.com</span>
+    </div>
+  </footer>
+</div>
+</body>
+</html>
