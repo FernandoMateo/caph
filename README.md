@@ -142,4 +142,3 @@ Para volver a una versión anterior: `git revert` del commit problemático y `gi
 
 - Validador de asociados: usa datos de ejemplo (`lib/data.ts`, `PADRON_DEMO`) hasta conectar el padrón real.
 - Galería: sin fotos reales cargadas; la sección aparece sola cuando se publica la primera.
-- Teléfono `36425151500` (M y L Empresa de Limpieza) viene así de la web actual; confirmar.
