@@ -4,13 +4,18 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 
 // Maqueta de arquitectura que emerge de la pantalla-plano de una tablet.
+// Escena de día, con los colores del logo, sobre el fondo claro del hero.
 
 const C = {
-  navy: 0x091135,
-  sky: 0x7eb6c8,
-  ink: 0x171717,
-  yellow: 0xffd600,
-  white: 0xf3f6f8,
+  petrol: 0x002f43,
+  blue: 0x3fb3e2,
+  teal: 0x5bb5c1,
+  mist: 0xa1c0d4,
+  ink: 0x22313a,
+  yellow: 0xfec73e,
+  orange: 0xf9a63a,
+  white: 0xffffff,
+  haze: 0xe8f3f8, // igual al pie del degradado de .hero
 };
 
 const TOWER = { w: 4.2, d: 3.2, lobby: 0.78, floor: 0.46, floors: 13 };
@@ -39,15 +44,18 @@ function drawBlueprint(canvas: HTMLCanvasElement, fontFamily: string) {
   const u = W / SCREEN.w; // px por unidad de mundo
   const cx = W / 2;
   const cy = H / 2;
-  const line = "rgba(126,182,200,";
+  const line = "rgba(21,111,150,";
 
-  ctx.fillStyle = "#0b1744";
+  const paper = ctx.createLinearGradient(0, 0, W, H);
+  paper.addColorStop(0, "#f7fcfe");
+  paper.addColorStop(1, "#e6f4fa");
+  ctx.fillStyle = paper;
   ctx.fillRect(0, 0, W, H);
 
   // cuadrícula
   for (let x = 0; x <= W; x += u / 4) {
     const major = Math.round(x / (u / 4)) % 4 === 0;
-    ctx.strokeStyle = line + (major ? "0.22)" : "0.08)");
+    ctx.strokeStyle = line + (major ? "0.18)" : "0.07)");
     ctx.lineWidth = major ? 2 : 1;
     ctx.beginPath();
     ctx.moveTo(x, 0);
@@ -56,7 +64,7 @@ function drawBlueprint(canvas: HTMLCanvasElement, fontFamily: string) {
   }
   for (let y = 0; y <= H; y += u / 4) {
     const major = Math.round(y / (u / 4)) % 4 === 0;
-    ctx.strokeStyle = line + (major ? "0.22)" : "0.08)");
+    ctx.strokeStyle = line + (major ? "0.18)" : "0.07)");
     ctx.lineWidth = major ? 2 : 1;
     ctx.beginPath();
     ctx.moveTo(0, y);
@@ -192,14 +200,14 @@ export default function HeroScene() {
     el.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(C.navy, 26, 78);
+    scene.fog = new THREE.Fog(C.haze, 26, 78);
 
     const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 200);
     const target = new THREE.Vector3(0, 3.3, 0);
 
     // ---------- luces
-    scene.add(new THREE.HemisphereLight(0xd6e9f1, C.navy, 1.5));
-    const sun = new THREE.DirectionalLight(0xfff3df, 2.6);
+    scene.add(new THREE.HemisphereLight(0xf2f9fc, C.mist, 1.9));
+    const sun = new THREE.DirectionalLight(0xfff3df, 2.4);
     sun.position.set(-9, 15, 9);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
@@ -207,7 +215,7 @@ export default function HeroScene() {
     sun.shadow.bias = -0.0004;
     sun.shadow.normalBias = 0.02;
     scene.add(sun);
-    const rim = new THREE.DirectionalLight(C.sky, 2.2);
+    const rim = new THREE.DirectionalLight(C.blue, 1.6);
     rim.position.set(10, 6, -10);
     scene.add(rim);
 
@@ -219,9 +227,9 @@ export default function HeroScene() {
     const clip = clipLocal.clone();
 
     const white = new THREE.MeshStandardMaterial({ color: C.white, roughness: 0.82, clippingPlanes: [clip], clipShadows: true });
-    const glass = new THREE.MeshStandardMaterial({ color: 0x101c48, roughness: 0.3, metalness: 0.15, clippingPlanes: [clip], clipShadows: true });
+    const glass = new THREE.MeshStandardMaterial({ color: 0x4f9cbf, roughness: 0.28, metalness: 0.1, clippingPlanes: [clip], clipShadows: true });
     const lobbyMat = new THREE.MeshStandardMaterial({
-      color: 0x2a3466,
+      color: C.petrol,
       emissive: C.yellow,
       emissiveIntensity: 0.32,
       roughness: 0.4,
@@ -282,7 +290,7 @@ export default function HeroScene() {
 
     const shadowCatcher = new THREE.Mesh(
       new THREE.PlaneGeometry(SCREEN.w, SCREEN.d),
-      new THREE.ShadowMaterial({ opacity: 0.45, color: 0x020614 })
+      new THREE.ShadowMaterial({ opacity: 0.22, color: C.petrol })
     );
     shadowCatcher.rotation.x = -Math.PI / 2;
     shadowCatcher.position.y = 0.004;
@@ -290,7 +298,7 @@ export default function HeroScene() {
     model.add(shadowCatcher);
 
     // brillo de la pantalla sobre la base de la torre
-    const glow = new THREE.PointLight(C.sky, 9, 9, 2);
+    const glow = new THREE.PointLight(C.blue, 4, 9, 2);
     glow.position.set(0, 0.6, 1.5);
     model.add(glow);
 
@@ -363,9 +371,9 @@ export default function HeroScene() {
     const m4 = new THREE.Matrix4();
     const q = new THREE.Quaternion();
     const one = new THREE.Vector3(1, 1, 1);
-    const off = new THREE.Color(0x1a2757);
+    const off = new THREE.Color(0xbfe0ee);
     const on = new THREE.Color(C.yellow);
-    const warm = new THREE.Color(0xffe680);
+    const warm = new THREE.Color(C.orange);
     windows.forEach((win, idx) => {
       q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), win.rotY);
       m4.compose(win.pos, q, one);
@@ -424,7 +432,7 @@ export default function HeroScene() {
       for (const sz of [-1, 1]) ghostPts.push((sx * (w + 0.5)) / 2, 0, (sz * (d + 0.5)) / 2, (sx * (w + 0.5)) / 2, ghostH, (sz * (d + 0.5)) / 2);
     const ghostGeo = new THREE.BufferGeometry();
     ghostGeo.setAttribute("position", new THREE.Float32BufferAttribute(ghostPts, 3));
-    const ghostMat = new THREE.LineBasicMaterial({ color: C.sky, transparent: true, opacity: 0.7, toneMapped: false, depthWrite: false });
+    const ghostMat = new THREE.LineBasicMaterial({ color: C.blue, transparent: true, opacity: 0.7, toneMapped: false, depthWrite: false });
     const ghost = new THREE.LineSegments(ghostGeo, ghostMat);
     model.add(ghost);
 
@@ -455,23 +463,22 @@ export default function HeroScene() {
     ].forEach(([a, b, c2, e]) => scanPts.push(a, 0, b, c2, 0, e));
     const scanGeo = new THREE.BufferGeometry();
     scanGeo.setAttribute("position", new THREE.Float32BufferAttribute(scanPts, 3));
+    // sobre fondo claro la mezcla aditiva no se ve: líneas de color con mezcla normal
     const scanMat = new THREE.LineBasicMaterial({
-      color: 0xdff4fb,
+      color: C.blue,
       transparent: true,
       opacity: 0,
       toneMapped: false,
-      blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
     const scan = new THREE.LineSegments(scanGeo, scanMat);
     model.add(scan);
     // halo del anillo: un plano tenue que acompaña la línea
     const haloMat = new THREE.MeshBasicMaterial({
-      color: C.sky,
+      color: C.blue,
       transparent: true,
       opacity: 0,
       toneMapped: false,
-      blending: THREE.AdditiveBlending,
       depthWrite: false,
       side: THREE.DoubleSide,
     });
@@ -485,9 +492,9 @@ export default function HeroScene() {
     sweepCanvas.height = 4;
     const sctx = sweepCanvas.getContext("2d")!;
     const sg = sctx.createLinearGradient(0, 0, 256, 0);
-    sg.addColorStop(0, "rgba(126,182,200,0)");
-    sg.addColorStop(0.5, "rgba(223,244,251,1)");
-    sg.addColorStop(1, "rgba(126,182,200,0)");
+    sg.addColorStop(0, "rgba(63,179,226,0)");
+    sg.addColorStop(0.5, "rgba(63,179,226,1)");
+    sg.addColorStop(1, "rgba(63,179,226,0)");
     sctx.fillStyle = sg;
     sctx.fillRect(0, 0, 256, 4);
     const sweepTex = new THREE.CanvasTexture(sweepCanvas);
@@ -496,7 +503,6 @@ export default function HeroScene() {
       transparent: true,
       opacity: 0,
       toneMapped: false,
-      blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
     const sweep = new THREE.Mesh(new THREE.PlaneGeometry(0.9, SCREEN.d), sweepMat);
@@ -507,7 +513,7 @@ export default function HeroScene() {
     // ---------- ciudad al fondo
     const city = new THREE.Group();
     scene.add(city);
-    const cityMat = new THREE.MeshBasicMaterial({ color: 0x101c4c });
+    const cityMat = new THREE.MeshBasicMaterial({ color: 0xcfe2eb });
     const lightsPos: number[] = [];
     let seed = 7;
     const rand = () => {
@@ -532,7 +538,7 @@ export default function HeroScene() {
     lightsGeo.setAttribute("position", new THREE.Float32BufferAttribute(lightsPos, 3));
     const cityLights = new THREE.Points(
       lightsGeo,
-      new THREE.PointsMaterial({ color: 0xffd600, size: 0.24, transparent: true, opacity: 0.9, toneMapped: false, fog: false })
+      new THREE.PointsMaterial({ color: 0xffffff, size: 0.24, transparent: true, opacity: 0.85, toneMapped: false, fog: false })
     );
     city.add(cityLights);
 

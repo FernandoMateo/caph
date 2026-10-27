@@ -36,7 +36,7 @@ export function Header({ profesionales = true }: { profesionales?: boolean }) {
     <header className="site-header" data-solid={solid || open || undefined}>
       <div className="site-header__bar">
         <a href="#inicio" className="site-header__brand" aria-label="CAPH Santa Fe, inicio">
-          <Logo ground="#070c28" ink="#ffffff" withText={false} className="site-header__mark" />
+          <Logo withText={false} className="site-header__mark" />
           <span className="site-header__name">
             CAPH <span>Santa Fe</span>
           </span>

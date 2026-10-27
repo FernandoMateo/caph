@@ -546,7 +546,7 @@ export default async function Home() {
           <footer className="footer" id="contacto">
             <div className="wrap footer__grid">
               <div className="footer__brand">
-                <Logo ground="#02040f" ink="#ffffff" className="footer__logo" />
+                <Logo ground="#eaf3f7" ink="#002f43" className="footer__logo" />
                 <p>{NOMBRE_LEGAL}</p>
                 <a href="/admin" className="footer__admin">
                   <Icon name="lock" size={16} /> Ingresar al panel

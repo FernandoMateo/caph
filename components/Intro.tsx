@@ -44,7 +44,8 @@ function sparks(canvas: HTMLCanvasElement) {
   const cx = W / 2;
   const cy = H / 2;
   const R = Math.hypot(W, H) / 2;
-  const colors = ["#ffffff", "#7eb6c8", "#bfe3ef", "#ffd600"];
+  // los colores del logo
+  const colors = ["#3fb3e2", "#5bb5c1", "#fec73e", "#ff4f42", "#f9a63a", "#a1c0d4"];
   const N = W < 640 ? 70 : 140;
   const parts = Array.from({ length: N }, (_, i) => {
     const a = Math.random() * Math.PI * 2;
@@ -64,7 +65,6 @@ function sparks(canvas: HTMLCanvasElement) {
   const frame = (now: number) => {
     const t = (now - t0) / 1000;
     ctx.clearRect(0, 0, W, H);
-    ctx.globalCompositeOperation = "lighter";
     for (const p of parts) {
       const k = (t - p.born) / p.life;
       if (k <= 0 || k >= 1) continue;
@@ -137,7 +137,7 @@ export function Intro() {
       <div className="intro__flash" />
       <div className="intro__brand">
         <svg className="intro__logo" viewBox="10 0 82 63" xmlns="http://www.w3.org/2000/svg">
-          <LogoMark ground="#050a22" piece={(i) => ({ className: "intro__piece", style: scatter[i] })} />
+          <LogoMark ground="#ffffff"piece={(i) => ({ className: "intro__piece", style: scatter[i] })} />
         </svg>
         <p className="intro__name">
           {"CAPH".split("").map((ch, i) => (
