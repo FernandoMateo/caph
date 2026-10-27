@@ -39,7 +39,24 @@ export type Honorarios = {
   tareas: Tarea[];
 };
 
-export type Proveedor = { n: string; r: string; v: boolean; tel?: string; web?: string; logo?: string };
+export type Proveedor = { n: string; r: string; v: boolean; tel?: string; web?: string; logo?: string; d?: string };
+
+export type Profesional = {
+  id: string;
+  nombre: string;
+  estudio: string;
+  numero: string;
+  titulo: string;
+  localidad: string;
+  direccion: string;
+  telefono: string;
+  email: string;
+  web: string;
+  descripcion: string;
+  desde: number;
+  foto: string;
+  verificado: boolean;
+};
 
 export type Foto = { id: string; src: string; thumb: string; titulo: string; descripcion: string };
 
@@ -195,9 +212,35 @@ export async function getProveedores(): Promise<Proveedor[]> {
       tel: str(p.telefono) || undefined,
       web: str(p.web) || undefined,
       logo: fileUrl(p, "logo", "160x160f") || undefined,
+      d: str(p.descripcion) || undefined,
     }));
   } catch {
     return PROVEEDORES;
+  }
+}
+
+export async function getProfesionales(): Promise<Profesional[]> {
+  try {
+    const items = await list("profesionales", "&filter=" + encodeURIComponent("activo = true") + "&sort=nombre");
+    return items.map((p) => ({
+      id: p.id,
+      nombre: str(p.nombre),
+      estudio: str(p.estudio),
+      numero: str(p.numero),
+      titulo: str(p.titulo),
+      localidad: str(p.localidad),
+      direccion: str(p.direccion),
+      telefono: str(p.telefono),
+      email: str(p.email),
+      web: str(p.web),
+      descripcion: str(p.descripcion),
+      desde: num(p.desde),
+      foto: fileUrl(p, "foto", "400x400f"),
+      verificado: Boolean(p.verificado),
+    }));
+  } catch {
+    // sin base de profesionales la sección no se muestra
+    return [];
   }
 }
 

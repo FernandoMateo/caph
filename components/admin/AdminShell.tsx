@@ -11,6 +11,7 @@ import { ToastProvider } from "./ui";
 const NAV = [
   ["/admin/honorarios", "Honorarios"],
   ["/admin/proveedores", "Proveedores"],
+  ["/admin/profesionales", "Profesionales"],
   ["/admin/contabilidad", "Contabilidad"],
   ["/admin/capacitaciones", "Capacitaciones"],
   ["/admin/galeria", "Galería"],
@@ -81,6 +82,16 @@ function Login() {
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [ready, setReady] = useState(false);
+  const [menu, setMenu] = useState(false);
+
+  // en el teléfono el menú se cierra al cambiar de sección o con Escape
+  useEffect(() => setMenu(false), [pathname]);
+  useEffect(() => {
+    if (!menu) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMenu(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [menu]);
   const [user, setUser] = useState<{ email: string; name?: string } | null>(null);
 
   useEffect(() => {
@@ -109,23 +120,36 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               CAPH <small>Panel</small>
             </span>
           </a>
-          <nav aria-label="Secciones del panel">
-            {NAV.map(([href, label]) => (
-              <Link key={href} href={href} aria-current={pathname?.startsWith(href) ? "page" : undefined}>
-                {label}
-              </Link>
-            ))}
-          </nav>
-          <div className="admin__user">
-            <a href="/" target="_blank" rel="noopener noreferrer" className="admin__view">
-              Ver la web <Icon name="link" size={16} />
-            </a>
-            <span className="admin__email">{user.name || user.email}</span>
-            <button type="button" className="admin__logout" onClick={() => pb().authStore.clear()}>
-              Cerrar sesión
-            </button>
+          <button
+            type="button"
+            className="admin__menu-btn"
+            aria-expanded={menu}
+            aria-controls="admin-menu"
+            onClick={() => setMenu((m) => !m)}
+          >
+            {NAV.find(([href]) => pathname?.startsWith(href))?.[1] ?? "Menú"}
+            <Icon name={menu ? "x" : "menu"} size={18} />
+          </button>
+          <div className="admin__panel" id="admin-menu" data-open={menu || undefined}>
+            <nav aria-label="Secciones del panel">
+              {NAV.map(([href, label]) => (
+                <Link key={href} href={href} aria-current={pathname?.startsWith(href) ? "page" : undefined}>
+                  {label}
+                </Link>
+              ))}
+            </nav>
+            <div className="admin__user">
+              <a href="/" target="_blank" rel="noopener noreferrer" className="admin__view">
+                Ver la web <Icon name="link" size={16} />
+              </a>
+              <span className="admin__email">{user.name || user.email}</span>
+              <button type="button" className="admin__logout" onClick={() => pb().authStore.clear()}>
+                Cerrar sesión
+              </button>
+            </div>
           </div>
         </aside>
+        {menu && <button type="button" className="admin__scrim" aria-label="Cerrar menú" tabIndex={-1} onClick={() => setMenu(false)} />}
         <main className="admin__main">{children}</main>
       </div>
     </ToastProvider>

@@ -3,11 +3,12 @@ import HeroScene from "../components/HeroScene";
 import { Icon } from "../components/Icon";
 import { Logo } from "../components/Logo";
 import { CalculadoraHonorarios } from "../components/Honorarios";
+import { Profesionales } from "../components/Profesionales";
 import { Proveedores } from "../components/Proveedores";
 import { Reveal } from "../components/Reveal";
 import { Validador } from "../components/Validador";
 import { LINKS, NOMBRE_LEGAL, RUBROS } from "../lib/data";
-import { getCapacitaciones, getGaleria, getHonorarios, getProveedores, type Capacitacion } from "../lib/content";
+import { getCapacitaciones, getGaleria, getHonorarios, getProfesionales, getProveedores, type Capacitacion } from "../lib/content";
 import { Galeria3D } from "../components/Galeria3D";
 import { Intro } from "../components/Intro";
 import { Spotlight } from "../components/Spotlight";
@@ -54,9 +55,10 @@ const BENEFICIOS = [
 ];
 
 export default async function Home() {
-  const [hon, proveedores, capacitaciones, fotos] = await Promise.all([
+  const [hon, proveedores, profesionales, capacitaciones, fotos] = await Promise.all([
     getHonorarios(),
     getProveedores(),
+    getProfesionales(),
     getCapacitaciones(),
     getGaleria(),
   ]);
@@ -73,7 +75,7 @@ export default async function Home() {
         Saltar al contenido
       </a>
       <Intro />
-      <Header />
+      <Header profesionales={profesionales.length > 0} />
       <Reveal />
       <Spotlight />
 
@@ -389,6 +391,30 @@ export default async function Home() {
               </div>
             </div>
           </section>
+
+          {/* ---------- PROFESIONALES ---------- */}
+          {profesionales.length > 0 && (
+            <section className="block" id="profesionales" aria-labelledby="pro-title">
+              <div className="wrap">
+                <header className="block__head block__head--row" data-reveal>
+                  <div>
+                    <p className="eyebrow">Profesionales</p>
+                    <h2 id="pro-title" className="h2">
+                      Profesionales asociados <span className="muted">a la Cámara.</span>
+                    </h2>
+                    <p className="lede">Administradores y profesionales de la propiedad horizontal. Contactalos directo desde su tarjeta.</p>
+                  </div>
+                  <a className="btn btn--navy" href={LINKS.asociarse} target="_blank" rel="noopener noreferrer">
+                    Sumarme como asociado
+                    <Icon name="arrow" size={18} />
+                  </a>
+                </header>
+                <div data-reveal>
+                  <Profesionales profesionales={profesionales} />
+                </div>
+              </div>
+            </section>
+          )}
 
           {/* ---------- LA CÁMARA ---------- */}
           <section className="block" id="quienes-somos" aria-labelledby="qs-title">

@@ -1,18 +1,19 @@
 "use client";
 
 import { useId, useMemo, useState } from "react";
+import { coincide } from "../lib/buscar";
 import { RUBROS } from "../lib/data";
 import type { Proveedor } from "../lib/content";
 import { Icon } from "./Icon";
 
 const ORDER = Object.keys(RUBROS);
 
-function telHref(t: string) {
+export function telHref(t: string) {
   const digits = t.replace(/\D/g, "");
   return `tel:${digits}`;
 }
 
-function telLabel(t: string) {
+export function telLabel(t: string) {
   // normaliza a 10 dígitos: quita 0 de larga distancia, prefijo 54 9 y el 1 de discado
   let d = t.replace(/\D/g, "").replace(/^0/, "");
   if (d.length === 13 && d.startsWith("549")) d = d.slice(3);
@@ -23,7 +24,7 @@ function telLabel(t: string) {
   return `${d.slice(0, 3)} ${d.slice(3, 6)}-${d.slice(6)}`;
 }
 
-function iniciales(nombre: string) {
+export function iniciales(nombre: string) {
   const palabras = nombre.replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/).filter((w) => w.length > 1 || /\d/.test(w));
   return (palabras.slice(0, 2).map((w) => w[0]).join("") || nombre.slice(0, 2)).toUpperCase();
 }
@@ -40,8 +41,9 @@ export function Proveedores({ proveedores: PROVEEDORES }: { proveedores: Proveed
   }, [PROVEEDORES]);
 
   const list = useMemo(() => {
-    const n = q.trim().toLowerCase();
-    return PROVEEDORES.filter((p) => (rubro === "todos" || p.r === rubro) && (!n || p.n.toLowerCase().includes(n))).sort(
+    return PROVEEDORES.filter(
+      (p) => (rubro === "todos" || p.r === rubro) && coincide(q, [p.n, RUBROS[p.r], p.d, p.web], [p.tel])
+    ).sort(
       (a, b) => ORDER.indexOf(a.r) - ORDER.indexOf(b.r) || a.n.localeCompare(b.n, "es")
     );
   }, [rubro, q, PROVEEDORES]);
@@ -65,10 +67,10 @@ export function Proveedores({ proveedores: PROVEEDORES }: { proveedores: Proveed
         </div>
         <div className="board__search">
           <label htmlFor={searchId} className="sr-only">
-            Buscar proveedor por nombre
+            Buscar proveedor por nombre, servicio o teléfono
           </label>
           <Icon name="search" size={18} />
-          <input id={searchId} type="search" placeholder="Buscar por nombre" value={q} onChange={(e) => setQ(e.target.value)} />
+          <input id={searchId} type="search" placeholder="Nombre, servicio o teléfono" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
       </div>
 
@@ -93,6 +95,7 @@ export function Proveedores({ proveedores: PROVEEDORES }: { proveedores: Proveed
               )}
             </span>
             <span className="board__rubro">{RUBROS[p.r] ?? RUBROS.otros}</span>
+            {p.d && <span className="board__desc">{p.d}</span>}
             <span className="board__actions">
               {p.tel && (
                 <a href={telHref(p.tel)} aria-label={`Llamar a ${p.n}`}>

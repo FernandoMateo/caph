@@ -45,7 +45,13 @@ const PATHS: Record<string, React.ReactNode> = {
       <path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3" />
     </>
   ),
-  pencil: <path d="M15.5 5.5l3 3M4.5 19.5l1-4.2L16.3 4.5a1.4 1.4 0 0 1 2 0l1.2 1.2a1.4 1.4 0 0 1 0 2L8.7 18.5z" />,
+  mail: (
+    <>
+      <rect x="3.5" y="5.5" width="17" height="13" rx="2" />
+      <path d="M4 7l8 6 8-6" />
+    </>
+  ),
+  pencil:<path d="M15.5 5.5l3 3M4.5 19.5l1-4.2L16.3 4.5a1.4 1.4 0 0 1 2 0l1.2 1.2a1.4 1.4 0 0 1 0 2L8.7 18.5z" />,
   menu: <path d="M4 7h16M4 12h16M4 17h16" />,
   calendar: (
     <>

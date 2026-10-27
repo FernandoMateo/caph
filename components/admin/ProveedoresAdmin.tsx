@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { coincide } from "../../lib/buscar";
 import { RUBROS } from "../../lib/data";
 import { errorMessage, fileUrl, pb } from "../../lib/pb-client";
 import { Icon } from "../Icon";
@@ -14,6 +15,7 @@ type Proveedor = {
   rubro: string;
   telefono: string;
   web: string;
+  descripcion: string;
   verificado: boolean;
   activo: boolean;
   oculto_mora?: boolean;
@@ -25,6 +27,7 @@ const BLANK: Omit<Proveedor, "id" | "collectionId"> = {
   rubro: "otros",
   telefono: "",
   web: "",
+  descripcion: "",
   verificado: true,
   activo: true,
 };
@@ -54,6 +57,7 @@ function Form({ initial, onSaved, onCancel }: { initial: Partial<Proveedor>; onS
           rubro: data.rubro,
           telefono: data.telefono.trim(),
           web,
+          descripcion: data.descripcion.trim(),
           verificado: data.verificado,
           activo: data.activo,
         };
@@ -125,6 +129,9 @@ function Form({ initial, onSaved, onCancel }: { initial: Partial<Proveedor>; onS
       <Field label="Web o red social" hint="Opcional." wide>
         <input value={data.web} onChange={(e) => set("web", e.target.value)} placeholder="https://instagram.com/…" />
       </Field>
+      <Field label="Servicios" hint="Se muestra en el directorio y el buscador de la web la usa. Ej.: cámaras, control de acceso, alarmas." wide>
+        <textarea rows={2} maxLength={400} value={data.descripcion} onChange={(e) => set("descripcion", e.target.value)} />
+      </Field>
       <div className="field" data-wide>
         <Toggle checked={data.verificado} onChange={(v) => set("verificado", v)} label="Asociado verificado por la Cámara" />
         <Toggle checked={data.activo} onChange={(v) => set("activo", v)} label="Visible en la web" />
@@ -176,9 +183,8 @@ export function ProveedoresAdmin() {
   }, [load]);
 
   const list = useMemo(() => {
-    const n = q.trim().toLowerCase();
     return (items ?? []).filter(
-      (p) => (rubro === "todos" || p.rubro === rubro) && (!n || p.nombre.toLowerCase().includes(n) || p.telefono.includes(n))
+      (p) => (rubro === "todos" || p.rubro === rubro) && coincide(q, [p.nombre, RUBROS[p.rubro], p.descripcion, p.web], [p.telefono])
     );
   }, [items, q, rubro]);
 
@@ -212,7 +218,7 @@ export function ProveedoresAdmin() {
       <div className="toolbar">
         <div className="search">
           <Icon name="search" size={18} />
-          <input type="search" placeholder="Buscar por nombre o teléfono" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar proveedor" />
+          <input type="search" placeholder="Buscar por nombre, servicio o teléfono" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar proveedor" />
         </div>
         <select value={rubro} onChange={(e) => setRubro(e.target.value)} aria-label="Filtrar por rubro">
           <option value="todos">Todos los rubros</option>

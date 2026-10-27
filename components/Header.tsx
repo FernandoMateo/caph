@@ -9,11 +9,12 @@ const NAV = [
   ["Honorarios", "#honorarios"],
   ["Capacitaciones", "#capacitaciones"],
   ["Proveedores", "#proveedores"],
+  ["Profesionales", "#profesionales"],
   ["La Cámara", "#quienes-somos"],
   ["Contacto", "#contacto"],
 ];
 
-export function Header() {
+export function Header({ profesionales = true }: { profesionales?: boolean }) {
   const [solid, setSolid] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -43,7 +44,7 @@ export function Header() {
 
         <nav className="site-nav" aria-label="Principal" data-open={open || undefined} id="site-nav">
           <ul>
-            {NAV.map(([label, href]) => (
+            {NAV.filter(([, href]) => profesionales || href !== "#profesionales").map(([label, href]) => (
               <li key={href}>
                 <a href={href} onClick={() => setOpen(false)}>
                   {label}

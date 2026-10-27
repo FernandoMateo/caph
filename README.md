@@ -26,6 +26,12 @@ pocketbase/pb_hooks/        lógica de la contabilidad (cuotas, imputación de p
 3. Copiar `.env.example` a `.env.local` (`PB_URL=http://127.0.0.1:8090`).
 4. `npm install` y `npm run dev` → http://localhost:3000 y http://localhost:3000/admin
 
+## Profesionales
+
+En `/admin/profesionales`: directorio de profesionales asociados (nombre, estudio, N.º de asociado, título, contacto, foto y descripción). Los marcados como visibles aparecen en la web en la sección **Profesionales**, con tarjetas 3D; la sección (y su enlace en el menú) aparece cuando hay al menos uno. No cargar DNI, CUIT ni domicilios particulares: todo lo que está en esta colección es público.
+
+Los buscadores de proveedores y profesionales (web y panel) buscan en todos los datos, sin distinguir mayúsculas ni acentos, y reconocen teléfonos escritos de cualquier forma (`lib/buscar.ts`).
+
 ## Contabilidad (cuotas de proveedores)
 
 En `/admin/contabilidad`. Nada de esto es público: solo lo ven los usuarios del panel.
