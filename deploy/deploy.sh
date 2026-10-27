@@ -14,11 +14,16 @@ main() {
   npm ci --no-audit --no-fund
   npm run build
 
-  # Migraciones de PocketBase: se aplican solas al reiniciar el servicio
-  if ! diff -rq pocketbase/pb_migrations "$BASE/pocketbase/pb_migrations" >/dev/null 2>&1; then
-    rsync -a --delete pocketbase/pb_migrations/ "$BASE/pocketbase/pb_migrations/"
-    if systemctl is-enabled --quiet caph-pocketbase; then sudo -n systemctl restart caph-pocketbase; fi
-  fi
+  # Migraciones y hooks de PocketBase: se aplican al reiniciar el servicio
+  local pb_cambio=0
+  for dir in pb_migrations pb_hooks; do
+    if ! diff -rq "pocketbase/$dir" "$BASE/pocketbase/$dir" >/dev/null 2>&1; then
+      mkdir -p "$BASE/pocketbase/$dir"
+      rsync -a --delete "pocketbase/$dir/" "$BASE/pocketbase/$dir/"
+      pb_cambio=1
+    fi
+  done
+  if [ "$pb_cambio" = 1 ] && systemctl is-enabled --quiet caph-pocketbase; then sudo -n systemctl restart caph-pocketbase; fi
 
   if systemctl is-enabled --quiet caph-web; then sudo -n systemctl restart caph-web; fi
   echo "Desplegado $(git rev-parse --short HEAD)"

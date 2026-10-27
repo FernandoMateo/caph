@@ -11,6 +11,7 @@ import { ToastProvider } from "./ui";
 const NAV = [
   ["/admin/honorarios", "Honorarios"],
   ["/admin/proveedores", "Proveedores"],
+  ["/admin/contabilidad", "Contabilidad"],
   ["/admin/capacitaciones", "Capacitaciones"],
   ["/admin/galeria", "Galería"],
 ];

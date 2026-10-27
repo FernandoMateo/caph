@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { RUBROS } from "../../lib/data";
 import { errorMessage, fileUrl, pb } from "../../lib/pb-client";
 import { Icon } from "../Icon";
+import { CamposCuota, cuotaVacia, payloadCuota, validarCuota } from "./ContabilidadAdmin";
 import { Drawer, Empty, Field, Loading, PageHead, Toggle, useConfirm, useToast } from "./ui";
 
 type Proveedor = {
@@ -15,6 +16,7 @@ type Proveedor = {
   web: string;
   verificado: boolean;
   activo: boolean;
+  oculto_mora?: boolean;
   logo?: string;
 };
 
@@ -33,6 +35,7 @@ function Form({ initial, onSaved, onCancel }: { initial: Partial<Proveedor>; onS
   const [busy, setBusy] = useState(false);
   const [logo, setLogo] = useState<File | null>(null);
   const [quitarLogo, setQuitarLogo] = useState(false);
+  const [cuota, setCuota] = useState(cuotaVacia);
   const preview = logo ? URL.createObjectURL(logo) : !quitarLogo && initial.logo ? fileUrl(initial as Proveedor, initial.logo) : "";
   const set = <K extends keyof typeof data>(k: K, v: (typeof data)[K]) => setData((d) => ({ ...d, [k]: v }));
 
@@ -42,6 +45,8 @@ function Form({ initial, onSaved, onCancel }: { initial: Partial<Proveedor>; onS
       onSubmit={async (e) => {
         e.preventDefault();
         if (!data.nombre.trim()) return toast("error", "Completá el nombre del proveedor.");
+        const errCuota = initial.id ? null : validarCuota(cuota);
+        if (errCuota) return toast("error", errCuota);
         let web = data.web.trim();
         if (web && !/^https?:\/\//i.test(web)) web = `https://${web}`;
         const payload: Record<string, unknown> = {
@@ -59,6 +64,15 @@ function Form({ initial, onSaved, onCancel }: { initial: Partial<Proveedor>; onS
           const saved = initial.id
             ? await pb().collection("proveedores").update<Proveedor>(initial.id, payload)
             : await pb().collection("proveedores").create<Proveedor>(payload);
+          if (!initial.id) {
+            try {
+              await pb().collection("suscripciones").create(payloadCuota(saved.id, cuota));
+            } catch (err) {
+              toast("error", `${saved.nombre} se creó, pero no se pudo dar de alta la cuota (${errorMessage(err)}). Hacelo desde Contabilidad.`);
+              onSaved(saved);
+              return;
+            }
+          }
           toast("ok", `${saved.nombre} guardado.${saved.activo ? " Ya se ve en la web." : " Está oculto en la web."}`);
           onSaved(saved);
         } catch (err) {
@@ -114,7 +128,20 @@ function Form({ initial, onSaved, onCancel }: { initial: Partial<Proveedor>; onS
       <div className="field" data-wide>
         <Toggle checked={data.verificado} onChange={(v) => set("verificado", v)} label="Asociado verificado por la Cámara" />
         <Toggle checked={data.activo} onChange={(v) => set("activo", v)} label="Visible en la web" />
+        {initial.oculto_mora && <span className="field__hint">Ahora está oculto por mora: vuelve a aparecer cuando se registre su pago en Contabilidad.</span>}
       </div>
+      {initial.id ? (
+        <p className="section-hint" data-wide>
+          La cuota mensual, los pagos y la deuda se manejan en <a href="/admin/contabilidad">Contabilidad</a>.
+        </p>
+      ) : (
+        <>
+          <h3 className="form-subtitle" data-wide>
+            Cuota mensual
+          </h3>
+          <CamposCuota value={cuota} onChange={setCuota} />
+        </>
+      )}
       <div className="form-actions" data-wide>
         <button type="button" className="btn btn--ghost-dark" onClick={onCancel}>
           Cancelar
@@ -257,6 +284,11 @@ export function ProveedoresAdmin() {
                     />
                   </td>
                   <td data-label="Visible">
+                    {p.oculto_mora && (
+                      <span className="pill" data-state="off" title="Oculto por mora: ver Contabilidad">
+                        Mora
+                      </span>
+                    )}{" "}
                     <input
                       type="checkbox"
                       role="switch"

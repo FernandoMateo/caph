@@ -6,7 +6,7 @@
                     "dev":  "next dev",
                     "build":  "next build",
                     "start":  "next start",
-                    "pb":  "pocketbase/bin/pocketbase.exe serve --http=127.0.0.1:8090 --dir pocketbase/pb_data --migrationsDir pocketbase/pb_migrations"
+                    "pb":  "pocketbase/bin/pocketbase.exe serve --http=127.0.0.1:8090 --dir pocketbase/pb_data --migrationsDir pocketbase/pb_migrations --hooksDir pocketbase/pb_hooks"
                 },
     "dependencies":  {
                          "next":  "^15.5.28",

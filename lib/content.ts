@@ -187,7 +187,7 @@ export async function getHonorarios(): Promise<Honorarios> {
 
 export async function getProveedores(): Promise<Proveedor[]> {
   try {
-    const items = await list("proveedores", "&filter=" + encodeURIComponent("activo = true") + "&sort=nombre");
+    const items = await list("proveedores", "&filter=" + encodeURIComponent("activo = true && oculto_mora = false") + "&sort=nombre");
     return items.map((p) => ({
       n: str(p.nombre),
       r: str(p.rubro) || "otros",
