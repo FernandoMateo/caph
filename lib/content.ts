@@ -11,9 +11,11 @@ import {
   NOTAS_HONORARIOS,
   PROGRAMA,
   PROVEEDORES,
+  RUBROS,
   TALLERES,
   TAREAS,
 } from "./data";
+import { CAMPOS_TEXTOS, textosPorDefecto, type Textos } from "./textos";
 
 const PB_URL = (process.env.PB_URL || "http://127.0.0.1:8090").replace(/\/$/, "");
 
@@ -43,6 +45,7 @@ export type Proveedor = { n: string; r: string; v: boolean; tel?: string; web?: 
 
 export type Profesional = {
   id: string;
+  rol: "asociado" | "profesional";
   nombre: string;
   estudio: string;
   numero: string;
@@ -55,6 +58,8 @@ export type Profesional = {
   descripcion: string;
   desde: number;
   foto: string;
+  /** La foto recortada vertical (4:5) para el carrusel. */
+  retrato: string;
   verificado: boolean;
 };
 
@@ -78,6 +83,8 @@ export type Capacitacion = {
   destacado: boolean;
   inscripcionUrl: string;
   programaUrl: string;
+  /** Se cursa online desde el portal. */
+  online?: boolean;
 };
 
 type PBRecord = Record<string, unknown> & { id: string; collectionId: string };
@@ -204,7 +211,7 @@ export async function getHonorarios(): Promise<Honorarios> {
 
 export async function getProveedores(): Promise<Proveedor[]> {
   try {
-    const items = await list("proveedores", "&filter=" + encodeURIComponent("activo = true && oculto_mora = false") + "&sort=nombre");
+    const items = await list("proveedores", "&filter=" + encodeURIComponent("activo = true && oculto_mora = false && estado = 'aprobado'") + "&sort=nombre");
     return items.map((p) => ({
       n: str(p.nombre),
       r: str(p.rubro) || "otros",
@@ -221,9 +228,10 @@ export async function getProveedores(): Promise<Proveedor[]> {
 
 export async function getProfesionales(): Promise<Profesional[]> {
   try {
-    const items = await list("profesionales", "&filter=" + encodeURIComponent("activo = true") + "&sort=nombre");
+    const items = await list("profesionales", "&filter=" + encodeURIComponent("activo = true && estado = 'aprobado' && oculto_mora = false") + "&sort=nombre");
     return items.map((p) => ({
       id: p.id,
+      rol: p.rol === "profesional" ? ("profesional" as const) : ("asociado" as const),
       nombre: str(p.nombre),
       estudio: str(p.estudio),
       numero: str(p.numero),
@@ -236,12 +244,131 @@ export async function getProfesionales(): Promise<Profesional[]> {
       descripcion: str(p.descripcion),
       desde: num(p.desde),
       foto: fileUrl(p, "foto", "400x400f"),
+      retrato: fileUrl(p, "foto", "600x750"),
       verificado: Boolean(p.verificado),
     }));
   } catch {
     // sin base de profesionales la sección no se muestra
     return [];
   }
+}
+
+/** Textos de la home: los cargados en el panel, y para el resto los de lib/textos.ts. */
+export async function getTextos(): Promise<Textos> {
+  const textos = textosPorDefecto();
+  try {
+    const conocidas = new Set(CAMPOS_TEXTOS.map((c) => c.clave));
+    for (const r of await list("contenidos")) {
+      const clave = str(r.clave);
+      // un texto borrado del todo vuelve al de por defecto
+      if (conocidas.has(clave) && str(r.valor).trim()) textos[clave] = nb(str(r.valor));
+    }
+  } catch {
+    // sin PocketBase, los textos originales
+  }
+  return textos;
+}
+
+/** Rubros del directorio, en orden: clave → nombre. */
+export async function getRubros(): Promise<Record<string, string>> {
+  try {
+    const items = await list("rubros", "&sort=orden,nombre");
+    return items.length ? Object.fromEntries(items.map((r) => [str(r.clave), str(r.nombre)])) : RUBROS;
+  } catch {
+    return RUBROS;
+  }
+}
+
+export type Certificado = { codigo: string; nombre: string; curso: string; tipo: string; horas: number; certificacion: string; fecha: string };
+
+/** Certificado de una capacitación por su código (pb_hooks/cursos.pb.js). null si no existe; lanza si PocketBase no responde. */
+export async function getCertificado(codigo: string): Promise<Certificado | null> {
+  if (!/^[A-Za-z0-9]{6,20}$/.test(codigo)) return null;
+  const res = await fetch(`${PB_URL}/api/caph/certificado/${encodeURIComponent(codigo)}`, { cache: "no-store", signal: AbortSignal.timeout(2500) });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`certificado: ${res.status}`);
+  return (await res.json()) as Certificado;
+}
+
+/** Lo que muestra la tarjeta pública para compartir (/carnet/<id>): el carnet y el contacto de su ficha. */
+export type CarnetPublico = {
+  id: string;
+  nombre: string;
+  rol: "Asociado" | "Profesional" | "Proveedor";
+  subtitulo: string;
+  numero: string;
+  detalle: string;
+  detalleLabel: string;
+  foto: string;
+  descripcion: string;
+  localidad: string;
+  telefono: string;
+  email: string;
+  web: string;
+};
+
+/**
+ * Tarjeta pública de un socio. Como la verificación, solo encuentra fichas publicadas (aprobadas, visibles y
+ * sin mora): todo lo que devuelve ya se muestra en la web. null si no existe o no está vigente.
+ */
+export async function getCarnetPublico(id: string): Promise<CarnetPublico | null> {
+  if (!/^[a-z0-9]{15}$/.test(id)) return null;
+  for (const collection of ["profesionales", "proveedores"]) {
+    const res = await fetch(`${PB_URL}/api/collections/${collection}/records/${id}`, { cache: "no-store", signal: AbortSignal.timeout(2500) });
+    if (res.status === 404) continue;
+    if (!res.ok) throw new Error(`${collection}: ${res.status}`);
+    const r = (await res.json()) as PBRecord;
+    const persona = collection === "profesionales";
+    const rubros = persona ? {} : await getRubros();
+    return {
+      id: r.id,
+      nombre: str(r.nombre),
+      rol: persona ? (r.rol === "profesional" ? "Profesional" : "Asociado") : "Proveedor",
+      subtitulo: persona ? str(r.titulo) || str(r.estudio) : rubros[str(r.rubro)] ?? "",
+      numero: persona ? str(r.numero) : "",
+      detalle: persona ? str(r.matricula) : str(r.razon_social),
+      detalleLabel: persona ? "Matrícula" : "",
+      foto: persona ? fileUrl(r, "foto", "400x400f") : fileUrl(r, "logo"),
+      descripcion: str(r.descripcion),
+      localidad: str(r.localidad),
+      telefono: str(r.telefono),
+      email: str(r.email),
+      web: str(r.web),
+    };
+  }
+  return null;
+}
+
+export type Credencial = {
+  nombre: string;
+  rol: "Asociado" | "Profesional" | "Proveedor";
+  detalle: string;
+  numero: string;
+  foto: string;
+};
+
+/**
+ * Credencial que muestra el QR del carnet. Solo encuentra fichas publicadas (aprobadas, visibles y sin mora):
+ * las reglas de PocketBase esconden las demás, y entonces el carnet no está vigente.
+ * null si no existe o no está vigente; lanza si PocketBase no responde.
+ */
+export async function getCredencial(id: string): Promise<Credencial | null> {
+  if (!/^[a-z0-9]{15}$/.test(id)) return null;
+  for (const collection of ["profesionales", "proveedores"]) {
+    const res = await fetch(`${PB_URL}/api/collections/${collection}/records/${id}`, { cache: "no-store", signal: AbortSignal.timeout(2500) });
+    if (res.status === 404) continue;
+    if (!res.ok) throw new Error(`${collection}: ${res.status}`);
+    const r = (await res.json()) as PBRecord;
+    const persona = collection === "profesionales";
+    return {
+      nombre: str(r.nombre),
+      rol: persona ? (r.rol === "profesional" ? "Profesional" : "Asociado") : "Proveedor",
+      detalle: persona ? [str(r.titulo), str(r.matricula) && `Mat. ${str(r.matricula)}`].filter(Boolean).join(" · ") : str(r.razon_social),
+      numero: persona ? str(r.numero) : "",
+      foto: persona ? fileUrl(r, "foto", "400x400f") : fileUrl(r, "logo", "160x160f"),
+    };
+  }
+  return null;
 }
 
 export async function getGaleria(): Promise<Foto[]> {
@@ -283,6 +410,7 @@ export async function getCapacitaciones(): Promise<Capacitacion[]> {
       destacado: Boolean(c.destacado),
       inscripcionUrl: str(c.inscripcion_url),
       programaUrl: fileUrl(c, "programa_pdf") || str(c.programa_url),
+      online: Boolean(c.online),
     }));
   } catch {
     return fallbackCapacitaciones();

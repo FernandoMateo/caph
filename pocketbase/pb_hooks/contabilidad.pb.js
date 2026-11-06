@@ -1,6 +1,6 @@
 /// <reference path="../pb_data/types.d.ts" />
 
-// Mantiene al día las cuentas de los proveedores (ver contabilidad.js).
+// Mantiene al día las cuentas de proveedores, asociados y profesionales (ver contabilidad.js).
 
 // Todos los días a las 03:10 del servidor: genera las cuotas nuevas y revisa la mora.
 cronAdd("caph-contabilidad", "10 3 * * *", () => {
@@ -22,41 +22,42 @@ routerAdd(
 // Alta o cambio de una suscripción: genera sus cuotas.
 onRecordCreateRequest((e) => {
   e.next();
-  require(`${__hooks}/contabilidad.js`).actualizarProveedor(e.app, e.record.getString("proveedor"));
+  require(`${__hooks}/contabilidad.js`).actualizarDe(e.app, e.record);
 }, "suscripciones");
 
 onRecordUpdateRequest((e) => {
   e.next();
-  require(`${__hooks}/contabilidad.js`).actualizarProveedor(e.app, e.record.getString("proveedor"));
+  require(`${__hooks}/contabilidad.js`).actualizarDe(e.app, e.record);
 }, "suscripciones");
 
-// Pagos: se registra quién lo cargó y se reimputan las cuotas.
+// Pagos: desde el portal quedan "informados" (no cuentan hasta que el panel los confirma); se reimputan las cuotas.
 onRecordCreateRequest((e) => {
-  if (e.auth) e.record.set("cargado_por", e.auth.getString("name") || e.auth.getString("email"));
+  const lib = require(`${__hooks}/contabilidad.js`);
+  lib.prepararPago(e);
   e.next();
-  require(`${__hooks}/contabilidad.js`).actualizarProveedor(e.app, e.record.getString("proveedor"));
+  lib.actualizarDe(e.app, e.record);
 }, "pagos");
 
+// Cambio de un pago (confirmarlo, rechazarlo, corregirlo): se reimputa también el titular anterior si cambió.
 onRecordUpdateRequest((e) => {
-  const antes = e.record.original().getString("proveedor");
+  const antes = e.record.original();
   e.next();
   const lib = require(`${__hooks}/contabilidad.js`);
-  lib.actualizarProveedor(e.app, e.record.getString("proveedor"));
-  if (antes !== e.record.getString("proveedor")) lib.actualizarProveedor(e.app, antes);
+  lib.actualizarDe(e.app, e.record);
+  if (lib.titular(antes).join("|") !== lib.titular(e.record).join("|")) lib.actualizarDe(e.app, antes);
 }, "pagos");
 
 onRecordDeleteRequest((e) => {
-  const proveedorId = e.record.getString("proveedor");
+  const pago = e.record;
   e.next();
-  require(`${__hooks}/contabilidad.js`).actualizarProveedor(e.app, proveedorId);
+  require(`${__hooks}/contabilidad.js`).actualizarDe(e.app, pago);
 }, "pagos");
 
 // Cambio manual de una cuota (monto, vencimiento o nota): se reimputa.
 onRecordUpdateRequest((e) => {
+  const original = e.record.original();
   e.record.set("ajustada", true);
-  e.record.set("proveedor", e.record.original().getString("proveedor"));
-  e.record.set("tipo", e.record.original().getString("tipo"));
-  e.record.set("periodo", e.record.original().getString("periodo"));
+  for (const campo of ["proveedor", "profesional", "tipo", "periodo"]) e.record.set(campo, original.getString(campo));
   e.next();
-  require(`${__hooks}/contabilidad.js`).actualizarProveedor(e.app, e.record.getString("proveedor"));
+  require(`${__hooks}/contabilidad.js`).actualizarDe(e.app, e.record);
 }, "cuotas");

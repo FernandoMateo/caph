@@ -1,0 +1,197 @@
+/* Alta pública (asociados, proveedores y profesionales): la tarjeta del login del panel, más ancha. */
+
+.alta {
+  align-items: start;
+}
+@media (min-height: 760px) {
+  .alta {
+    padding-block: 48px;
+  }
+}
+.login__card.alta__card {
+  width: min(100%, 640px);
+}
+/* también los usa el portal (/portal), que no está dentro de .login */
+.alta :where(select, textarea),
+.portal :where(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), select, textarea) {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--white);
+  font: inherit;
+  font-size: 0.9375rem;
+  transition:
+    border-color 0.2s var(--ease),
+    box-shadow 0.2s var(--ease);
+}
+:where(.alta, .portal) textarea {
+  line-height: 1.5;
+  resize: vertical;
+}
+:where(.alta, .portal) :where(input, select, textarea):hover {
+  border-color: var(--navy);
+}
+.alta :where(select, textarea):focus-visible,
+.portal :where(input, select, textarea):focus-visible {
+  outline: none;
+  border-color: var(--navy);
+  box-shadow: 0 0 0 4px rgba(126, 182, 200, 0.45);
+}
+:where(.alta, .portal) input[type="file"] {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  max-width: 100%;
+  font-size: 0.875rem;
+}
+:where(.alta, .portal) input[type="file"]::file-selector-button {
+  margin-right: 0.75rem;
+  padding: 0.5rem 0.9rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--navy);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.alta__group {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.alta__group legend {
+  padding: 0;
+  margin-bottom: 0.25rem;
+}
+.alta__eyebrow {
+  margin-bottom: 0.2rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--c-blue-ink);
+}
+.alta__link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--navy);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* elección del tipo de alta */
+.alta__roles {
+  display: grid;
+  gap: 0.6rem;
+}
+.alta__rol {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0.15rem 1rem;
+  padding: 16px 18px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+  text-align: left;
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+  transition:
+    background-color 0.25s var(--ease),
+    box-shadow 0.25s var(--ease),
+    transform 0.25s var(--ease);
+}
+.alta__rol strong {
+  font-weight: 600;
+  color: var(--navy);
+}
+.alta__rol span {
+  grid-column: 1;
+  font-size: 0.875rem;
+  color: var(--text-2);
+}
+.alta__rol svg {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  color: var(--navy);
+  transition: transform 0.3s var(--ease);
+}
+.alta__rol:hover {
+  background: var(--white);
+  box-shadow:
+    inset 0 0 0 1px var(--line-strong),
+    0 10px 24px -14px rgba(9, 17, 53, 0.35);
+}
+.alta__rol:hover svg {
+  transform: translateX(3px);
+}
+.alta__rol:focus-visible {
+  outline: 3px solid var(--navy);
+  outline-offset: 2px;
+}
+
+.alta__check {
+  display: flex;
+  gap: 0.75rem;
+  padding: 14px 16px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  cursor: pointer;
+}
+.alta__check input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: var(--navy);
+}
+.alta__check > span {
+  display: grid;
+  gap: 0.15rem;
+}
+.alta__check strong {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--navy);
+}
+.alta__check span span {
+  font-size: 0.8125rem;
+  color: var(--text-2);
+}
+
+.alta__ingresar {
+  font-size: 0.9375rem;
+  color: var(--text-2);
+  text-align: center;
+}
+.alta__ingresar a {
+  font-weight: 600;
+  color: var(--navy);
+}
+
+.alta__ok {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #e3f4e8;
+  color: #1d6b38;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .alta__rol,
+  .alta__rol svg {
+    transition: none;
+  }
+}

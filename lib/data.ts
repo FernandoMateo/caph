@@ -1,8 +1,10 @@
 // Contenido real tomado de caphsf.ar (octubre 2026).
 
 export const LINKS = {
-  asociarse: "https://forms.gle/chZKbeG8PhVot8xK8",
-  proveedor: "https://forms.gle/xbYahAh3qgD8gKq46",
+  // altas propias (con aprobación desde el panel); antes eran Google Forms
+  asociarse: "/alta?rol=asociado",
+  proveedor: "/alta?rol=proveedor",
+  profesional: "/alta?rol=profesional",
   convocatoria: "https://forms.gle/tcqJTEWSaUrX8EiC9",
   whatsapp: "https://wa.me/5493426262759",
   whatsappLabel: "+54 9 342 626-2759",

@@ -1,8 +1,15 @@
 // Tipos y cálculos de la contabilidad de cuotas (la lógica que genera e imputa vive en pocketbase/pb_hooks).
+// El titular de una cuenta es un proveedor ("proveedor") o un asociado/profesional ("profesional"): uno de los dos.
+
+export type CampoTitular = "proveedor" | "profesional";
+
+/** Id del titular de una suscripción, cuota o pago. */
+export const titularDe = (r: { proveedor?: string; profesional?: string }) => r.proveedor || r.profesional || "";
 
 export type Suscripcion = {
   id: string;
   proveedor: string;
+  profesional: string;
   cuota_monto: number;
   inscripcion_monto: number;
   fecha_alta: string;
@@ -14,6 +21,7 @@ export type Suscripcion = {
 export type Cuota = {
   id: string;
   proveedor: string;
+  profesional: string;
   tipo: "mensual" | "inscripcion";
   periodo: string;
   vencimiento: string;
@@ -26,12 +34,16 @@ export type Pago = {
   id: string;
   collectionId: string;
   proveedor: string;
+  profesional: string;
   fecha: string;
   monto: number;
   medio: string;
   comprobante?: string;
   nota: string;
   cargado_por: string;
+  /** "informado": lo cargó el usuario desde el portal y todavía no cuenta para las cuotas. */
+  estado: "informado" | "confirmado" | "rechazado";
+  motivo: string;
 };
 
 export const MEDIOS: Record<string, string> = {
@@ -39,7 +51,17 @@ export const MEDIOS: Record<string, string> = {
   efectivo: "Efectivo",
   mercadopago: "Mercado Pago",
   cheque: "Cheque",
+  debito: "Débito automático",
   otro: "Otro",
+};
+
+export type Tarifa = {
+  id: string;
+  rol: "asociado" | "proveedor" | "profesional";
+  cuota_monto: number;
+  inscripcion_monto: number;
+  dia_vencimiento: number;
+  cobrar: boolean;
 };
 
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];

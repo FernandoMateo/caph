@@ -1,0 +1,76 @@
+/* Tarjeta pública de un socio (/carnet/<id>). */
+
+.tarjeta-pagina {
+  display: grid;
+  place-items: start center;
+  padding: clamp(24px, 6vw, 64px) 16px 48px;
+  background:
+    radial-gradient(ellipse 70% 45% at 50% 0%, rgba(63, 179, 226, 0.16) 0%, rgba(63, 179, 226, 0) 70%),
+    var(--surface);
+}
+.tarjeta {
+  display: grid;
+  gap: 1rem;
+  width: min(100%, 460px);
+  animation: tarjeta-entra 0.8s var(--ease) both;
+}
+@keyframes tarjeta-entra {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+  }
+}
+.tarjeta__info {
+  display: grid;
+  gap: 0.3rem;
+  text-align: center;
+}
+.tarjeta__info h1 {
+  font-weight: 600;
+  font-size: clamp(1.375rem, 1.1rem + 1vw, 1.75rem);
+  letter-spacing: -0.02em;
+  color: var(--navy);
+}
+.tarjeta__info p {
+  color: var(--text-2);
+}
+.tarjeta__desc {
+  max-width: 52ch;
+  margin: 0.25rem auto 0;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+.tarjeta__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.tarjeta__acciones--sec {
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+.tarjeta__aviso {
+  min-height: 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-align: center;
+  color: #1d6b38;
+}
+.tarjeta__camara {
+  display: inline-flex;
+  justify-self: center;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  color: var(--muted);
+  text-decoration: none;
+}
+.tarjeta__camara:hover {
+  color: var(--navy);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tarjeta {
+    animation: none;
+  }
+}

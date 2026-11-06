@@ -2,30 +2,39 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { coincide } from "../../lib/buscar";
-import { RUBROS } from "../../lib/data";
+import { useRubros } from "../../lib/rubros-client";
 import { errorMessage, fileUrl, pb } from "../../lib/pb-client";
+import { descargarExcel } from "../../lib/excel";
 import { Icon } from "../Icon";
 import { CamposCuota, cuotaVacia, payloadCuota, validarCuota } from "./ContabilidadAdmin";
+import type { Tarifa } from "./cuentas";
 import { Drawer, Empty, Field, Loading, PageHead, Toggle, useConfirm, useToast } from "./ui";
 
 type Proveedor = {
   id: string;
   collectionId: string;
   nombre: string;
+  razon_social: string;
   rubro: string;
   telefono: string;
+  email: string;
+  direccion: string;
   web: string;
   descripcion: string;
   verificado: boolean;
   activo: boolean;
   oculto_mora?: boolean;
   logo?: string;
+  estado?: "pendiente" | "aprobado" | "rechazado";
 };
 
 const BLANK: Omit<Proveedor, "id" | "collectionId"> = {
   nombre: "",
+  razon_social: "",
   rubro: "otros",
   telefono: "",
+  email: "",
+  direccion: "",
   web: "",
   descripcion: "",
   verificado: true,
@@ -34,11 +43,21 @@ const BLANK: Omit<Proveedor, "id" | "collectionId"> = {
 
 function Form({ initial, onSaved, onCancel }: { initial: Partial<Proveedor>; onSaved: (p: Proveedor) => void; onCancel: () => void }) {
   const toast = useToast();
+  const RUBROS = useRubros();
   const [data, setData] = useState({ ...BLANK, ...initial });
   const [busy, setBusy] = useState(false);
   const [logo, setLogo] = useState<File | null>(null);
   const [quitarLogo, setQuitarLogo] = useState(false);
-  const [cuota, setCuota] = useState(cuotaVacia);
+  const [cuota, setCuota] = useState(() => cuotaVacia());
+  // un proveedor nuevo arranca con la tarifa vigente
+  useEffect(() => {
+    if (initial.id) return;
+    pb()
+      .collection("tarifas")
+      .getFirstListItem<Tarifa>("rol = 'proveedor'")
+      .then((t) => setCuota(cuotaVacia(t)))
+      .catch(() => {});
+  }, [initial.id]);
   const preview = logo ? URL.createObjectURL(logo) : !quitarLogo && initial.logo ? fileUrl(initial as Proveedor, initial.logo) : "";
   const set = <K extends keyof typeof data>(k: K, v: (typeof data)[K]) => setData((d) => ({ ...d, [k]: v }));
 
@@ -47,15 +66,18 @@ function Form({ initial, onSaved, onCancel }: { initial: Partial<Proveedor>; onS
       className="form-grid"
       onSubmit={async (e) => {
         e.preventDefault();
-        if (!data.nombre.trim()) return toast("error", "Completá el nombre del proveedor.");
+        if (!data.nombre.trim()) return toast("error", "Completá el nombre de fantasía.");
         const errCuota = initial.id ? null : validarCuota(cuota);
         if (errCuota) return toast("error", errCuota);
         let web = data.web.trim();
         if (web && !/^https?:\/\//i.test(web)) web = `https://${web}`;
         const payload: Record<string, unknown> = {
           nombre: data.nombre.trim(),
+          razon_social: data.razon_social.trim(),
           rubro: data.rubro,
           telefono: data.telefono.trim(),
+          email: data.email.trim(),
+          direccion: data.direccion.trim(),
           web,
           descripcion: data.descripcion.trim(),
           verificado: data.verificado,
@@ -70,7 +92,7 @@ function Form({ initial, onSaved, onCancel }: { initial: Partial<Proveedor>; onS
             : await pb().collection("proveedores").create<Proveedor>(payload);
           if (!initial.id) {
             try {
-              await pb().collection("suscripciones").create(payloadCuota(saved.id, cuota));
+              await pb().collection("suscripciones").create(payloadCuota("proveedor", saved.id, cuota));
             } catch (err) {
               toast("error", `${saved.nombre} se creó, pero no se pudo dar de alta la cuota (${errorMessage(err)}). Hacelo desde Contabilidad.`);
               onSaved(saved);
@@ -86,8 +108,11 @@ function Form({ initial, onSaved, onCancel }: { initial: Partial<Proveedor>; onS
         }
       }}
     >
-      <Field label="Nombre" wide>
+      <Field label="Nombre de fantasía" hint="El que se muestra en la web.">
         <input value={data.nombre} onChange={(e) => set("nombre", e.target.value)} required autoFocus />
+      </Field>
+      <Field label="Razón social" hint="Nombre legal de la empresa.">
+        <input value={data.razon_social} onChange={(e) => set("razon_social", e.target.value)} />
       </Field>
       <div className="field" data-wide>
         <span className="field__label">Logo</span>
@@ -105,7 +130,7 @@ function Form({ initial, onSaved, onCancel }: { initial: Partial<Proveedor>; onS
                 setQuitarLogo(false);
               }}
             />
-            <span className="field__hint">PNG, JPG, WebP o SVG, hasta 3 MB. Ideal: cuadrado con fondo claro.</span>
+            <span className="field__hint">Obligatorio para publicar. PNG, JPG, WebP o SVG, hasta 3 MB. Ideal: cuadrado con fondo claro.</span>
             {initial.logo && !logo && (
               <label className="check">
                 <input type="checkbox" checked={quitarLogo} onChange={(e) => setQuitarLogo(e.target.checked)} /> Quitar logo
@@ -126,6 +151,12 @@ function Form({ initial, onSaved, onCancel }: { initial: Partial<Proveedor>; onS
       <Field label="Teléfono" hint="Con código de área. Ej.: 342 453-1968">
         <input type="tel" value={data.telefono} onChange={(e) => set("telefono", e.target.value)} />
       </Field>
+      <Field label="Email">
+        <input type="email" value={data.email} onChange={(e) => set("email", e.target.value)} />
+      </Field>
+      <Field label="Dirección" wide>
+        <input value={data.direccion} onChange={(e) => set("direccion", e.target.value)} />
+      </Field>
       <Field label="Web o red social" hint="Opcional." wide>
         <input value={data.web} onChange={(e) => set("web", e.target.value)} placeholder="https://instagram.com/…" />
       </Field>
@@ -135,8 +166,16 @@ function Form({ initial, onSaved, onCancel }: { initial: Partial<Proveedor>; onS
       <div className="field" data-wide>
         <Toggle checked={data.verificado} onChange={(v) => set("verificado", v)} label="Asociado verificado por la Cámara" />
         <Toggle checked={data.activo} onChange={(v) => set("activo", v)} label="Visible en la web" />
+        {initial.estado && initial.estado !== "aprobado" && (
+          <span className="field__hint">
+            Su alta está {initial.estado === "pendiente" ? "pendiente" : "rechazada"}: se aprueba desde <a href="/admin/altas">Altas</a>.
+          </span>
+        )}
         {initial.oculto_mora && <span className="field__hint">Ahora está oculto por mora: vuelve a aparecer cuando se registre su pago en Contabilidad.</span>}
       </div>
+      <p className="field__hint" data-wide>
+        Para publicar un proveedor nuevo hacen falta logo, razón social, teléfono, email y dirección.
+      </p>
       {initial.id ? (
         <p className="section-hint" data-wide>
           La cuota mensual, los pagos y la deuda se manejan en <a href="/admin/contabilidad">Contabilidad</a>.
@@ -163,6 +202,7 @@ function Form({ initial, onSaved, onCancel }: { initial: Partial<Proveedor>; onS
 
 export function ProveedoresAdmin() {
   const toast = useToast();
+  const RUBROS = useRubros();
   const { confirm, dialog } = useConfirm();
   const [items, setItems] = useState<Proveedor[] | null>(null);
   const [q, setQ] = useState("");
@@ -184,7 +224,7 @@ export function ProveedoresAdmin() {
 
   const list = useMemo(() => {
     return (items ?? []).filter(
-      (p) => (rubro === "todos" || p.rubro === rubro) && coincide(q, [p.nombre, RUBROS[p.rubro], p.descripcion, p.web], [p.telefono])
+      (p) => (rubro === "todos" || p.rubro === rubro) && coincide(q, [p.nombre, p.razon_social, RUBROS[p.rubro], p.descripcion, p.web, p.email, p.direccion], [p.telefono])
     );
   }, [items, q, rubro]);
 
@@ -232,6 +272,36 @@ export function ProveedoresAdmin() {
           <span className="toolbar__count">
             {list.length} de {items.length}
           </span>
+        )}
+        {list.length > 0 && (
+          <button
+            type="button"
+            className="btn btn--ghost-dark btn--sm"
+            title="Baja a Excel los proveedores que se ven con el filtro actual"
+            onClick={() =>
+              descargarExcel(`proveedores-${new Date().toISOString().slice(0, 10)}`, [
+                {
+                  nombre: "Proveedores",
+                  columnas: [
+                    { clave: "nombre", titulo: "Nombre de fantasía", ancho: 32 },
+                    { clave: "razon_social", titulo: "Razón social", ancho: 28 },
+                    { clave: "rubro", titulo: "Rubro", ancho: 24 },
+                    { clave: "telefono", titulo: "Teléfono", ancho: 16 },
+                    { clave: "email", titulo: "Email", ancho: 28 },
+                    { clave: "direccion", titulo: "Dirección", ancho: 28 },
+                    { clave: "web", titulo: "Web o red social", ancho: 36 },
+                    { clave: "descripcion", titulo: "Servicios", ancho: 48 },
+                    { clave: "verificado", titulo: "Verificado" },
+                    { clave: "activo", titulo: "Visible" },
+                    { clave: "estado", titulo: "Estado" },
+                  ],
+                  filas: list.map((p) => ({ ...p, rubro: RUBROS[p.rubro] ?? p.rubro, verificado: p.verificado ? "Sí" : "No", activo: p.activo ? "Sí" : "No" })),
+                },
+              ]).catch((err) => toast("error", errorMessage(err)))
+            }
+          >
+            <Icon name="download" size={16} /> Exportar
+          </button>
         )}
       </div>
 
@@ -290,6 +360,11 @@ export function ProveedoresAdmin() {
                     />
                   </td>
                   <td data-label="Visible">
+                    {p.estado && p.estado !== "aprobado" && (
+                      <span className="pill" data-state={p.estado === "pendiente" ? "warn" : "off"} title="Se aprueba desde Altas">
+                        {p.estado === "pendiente" ? "Pendiente" : "Rechazado"}
+                      </span>
+                    )}{" "}
                     {p.oculto_mora && (
                       <span className="pill" data-state="off" title="Oculto por mora: ver Contabilidad">
                         Mora

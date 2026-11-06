@@ -6,8 +6,6 @@ import { RUBROS } from "../lib/data";
 import type { Proveedor } from "../lib/content";
 import { Icon } from "./Icon";
 
-const ORDER = Object.keys(RUBROS);
-
 export function telHref(t: string) {
   const digits = t.replace(/\D/g, "");
   return `tel:${digits}`;
@@ -29,7 +27,9 @@ export function iniciales(nombre: string) {
   return (palabras.slice(0, 2).map((w) => w[0]).join("") || nombre.slice(0, 2)).toUpperCase();
 }
 
-export function Proveedores({ proveedores: PROVEEDORES }: { proveedores: Proveedor[] }) {
+/** `rubros`: clave → nombre, en el orden en que se muestran (editables en el panel). */
+export function Proveedores({ proveedores: PROVEEDORES, rubros = RUBROS }: { proveedores: Proveedor[]; rubros?: Record<string, string> }) {
+  const ORDER = Object.keys(rubros);
   const searchId = useId();
   const [rubro, setRubro] = useState<string>("todos");
   const [q, setQ] = useState("");
@@ -42,11 +42,11 @@ export function Proveedores({ proveedores: PROVEEDORES }: { proveedores: Proveed
 
   const list = useMemo(() => {
     return PROVEEDORES.filter(
-      (p) => (rubro === "todos" || p.r === rubro) && coincide(q, [p.n, RUBROS[p.r], p.d, p.web], [p.tel])
+      (p) => (rubro === "todos" || p.r === rubro) && coincide(q, [p.n, rubros[p.r], p.d, p.web], [p.tel])
     ).sort(
       (a, b) => ORDER.indexOf(a.r) - ORDER.indexOf(b.r) || a.n.localeCompare(b.n, "es")
     );
-  }, [rubro, q, PROVEEDORES]);
+  }, [rubro, q, PROVEEDORES, rubros]);
 
   // la lista completa es larga en el teléfono: se muestra un adelanto hasta que se filtra, busca o pide verla entera
   const [all, setAll] = useState(false);
@@ -61,7 +61,7 @@ export function Proveedores({ proveedores: PROVEEDORES }: { proveedores: Proveed
           </button>
           {ORDER.filter((r) => counts[r]).map((r) => (
             <button type="button" key={r} aria-pressed={rubro === r} onClick={() => setRubro(r)}>
-              {RUBROS[r]} <span>{counts[r]}</span>
+              {rubros[r]} <span>{counts[r]}</span>
             </button>
           ))}
         </div>
@@ -94,7 +94,7 @@ export function Proveedores({ proveedores: PROVEEDORES }: { proveedores: Proveed
                 </span>
               )}
             </span>
-            <span className="board__rubro">{RUBROS[p.r] ?? RUBROS.otros}</span>
+            <span className="board__rubro">{rubros[p.r] ?? rubros.otros ?? ""}</span>
             {p.d && <span className="board__desc">{p.d}</span>}
             <span className="board__actions">
               {p.tel && (

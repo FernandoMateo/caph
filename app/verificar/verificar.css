@@ -1,0 +1,69 @@
+/* Verificación pública del carnet (la abre el QR). */
+
+.verificar__estado {
+  display: inline-flex;
+  justify-self: start;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  background: #fdecea;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8a1f1f;
+}
+.login__card > p.verificar__estado {
+  margin-top: 0;
+}
+.verificar__estado[data-vigente] {
+  background: #e3f4e8;
+  color: #1d6b38;
+}
+.verificar__persona {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.verificar__persona h1 {
+  font-size: 1.375rem;
+}
+.verificar__persona p {
+  font-size: 0.9375rem;
+  color: var(--text-2);
+}
+.verificar__detalle {
+  margin-top: 0.15rem;
+  font-size: 0.875rem;
+}
+.verificar__foto {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--surface-2);
+  font-weight: 600;
+  font-size: 1.5rem;
+  color: var(--navy);
+}
+.verificar__foto[data-logo] {
+  border-radius: var(--r-md);
+  background: var(--white);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.verificar__foto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.verificar__foto[data-logo] img {
+  object-fit: contain;
+}
+.verificar__fecha {
+  font-size: 0.8125rem;
+  color: var(--muted);
+}

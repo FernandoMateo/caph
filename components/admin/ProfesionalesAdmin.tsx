@@ -3,16 +3,19 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { coincide } from "../../lib/buscar";
 import { errorMessage, fileUrl, pb } from "../../lib/pb-client";
+import { descargarExcel } from "../../lib/excel";
 import { Icon } from "../Icon";
 import { Drawer, Empty, Field, Loading, PageHead, Toggle, useConfirm, useToast } from "./ui";
 
 type Profesional = {
   id: string;
   collectionId: string;
+  rol: "asociado" | "profesional";
   nombre: string;
   estudio: string;
   numero: string;
   titulo: string;
+  matricula: string;
   localidad: string;
   direccion: string;
   telefono: string;
@@ -23,15 +26,20 @@ type Profesional = {
   foto?: string;
   verificado: boolean;
   activo: boolean;
+  estado?: "pendiente" | "aprobado" | "rechazado";
 };
 
-type Datos = Omit<Profesional, "id" | "collectionId" | "foto" | "desde"> & { desde: string };
+type Datos = Omit<Profesional, "id" | "collectionId" | "foto" | "desde" | "estado"> & { desde: string };
+
+const ROLES = { asociado: "Asociado (administrador de consorcios)", profesional: "Profesional" } as const;
 
 const BLANK: Datos = {
+  rol: "asociado",
   nombre: "",
   estudio: "",
   numero: "",
   titulo: "Administrador de consorcios",
+  matricula: "",
   localidad: "Santa Fe",
   direccion: "",
   telefono: "",
@@ -57,6 +65,7 @@ function Form({ initial, onSaved, onCancel }: { initial: Partial<Profesional>; o
   const [data, setData] = useState<Datos>(() => ({
     ...BLANK,
     ...Object.fromEntries(Object.entries(initial).filter(([k]) => k in BLANK)),
+    rol: initial.rol || "asociado",
     desde: initial.desde ? String(initial.desde) : "",
   }));
   const [busy, setBusy] = useState(false);
@@ -97,8 +106,17 @@ function Form({ initial, onSaved, onCancel }: { initial: Partial<Profesional>; o
         }
       }}
     >
-      <Field label="Nombre y apellido" wide>
+      <Field label="Nombre y apellido">
         <input value={data.nombre} onChange={(e) => set("nombre", e.target.value)} required autoFocus />
+      </Field>
+      <Field label="Tipo">
+        <select value={data.rol} onChange={(e) => set("rol", e.target.value as Datos["rol"])}>
+          {Object.entries(ROLES).map(([k, v]) => (
+            <option key={k} value={k}>
+              {v}
+            </option>
+          ))}
+        </select>
       </Field>
       <div className="field" data-wide>
         <span className="field__label">Foto</span>
@@ -116,7 +134,7 @@ function Form({ initial, onSaved, onCancel }: { initial: Partial<Profesional>; o
                 setQuitarFoto(false);
               }}
             />
-            <span className="field__hint">Opcional. JPG, PNG o WebP, hasta 5 MB. Ideal: cuadrada, de frente.</span>
+            <span className="field__hint">Obligatoria para publicar. JPG, PNG o WebP, hasta 5 MB. Ideal: cuadrada, de frente.</span>
             {initial.foto && !foto && (
               <label className="check">
                 <input type="checkbox" checked={quitarFoto} onChange={(e) => setQuitarFoto(e.target.checked)} /> Quitar foto
@@ -128,11 +146,14 @@ function Form({ initial, onSaved, onCancel }: { initial: Partial<Profesional>; o
       <Field label="Estudio o razón social" hint="Opcional. Ej.: Estudio Pérez & Asociados">
         <input value={data.estudio} onChange={(e) => set("estudio", e.target.value)} />
       </Field>
-      <Field label="N.º de asociado" hint="Ej.: A-001">
+      <Field label={data.rol === "asociado" ? "N.º de asociado" : "N.º de registro"} hint="Ej.: A-001">
         <input value={data.numero} onChange={(e) => set("numero", e.target.value)} />
       </Field>
       <Field label="Título o profesión">
         <input value={data.titulo} onChange={(e) => set("titulo", e.target.value)} />
+      </Field>
+      <Field label="Matrícula" hint={data.rol === "profesional" ? "Obligatoria para profesionales. Ej.: CPCE 12345" : "Opcional."}>
+        <input value={data.matricula} onChange={(e) => set("matricula", e.target.value)} />
       </Field>
       <Field label="Ejerce desde (año)" hint="Opcional. Se muestra como años de trayectoria.">
         <input type="number" min={1950} max={new Date().getFullYear()} value={data.desde} onChange={(e) => set("desde", e.target.value)} />
@@ -146,7 +167,7 @@ function Form({ initial, onSaved, onCancel }: { initial: Partial<Profesional>; o
       <Field label="Localidad">
         <input value={data.localidad} onChange={(e) => set("localidad", e.target.value)} />
       </Field>
-      <Field label="Dirección de la oficina" hint="Opcional. No cargues domicilios particulares.">
+      <Field label="Dirección de la oficina" hint="No cargues domicilios particulares.">
         <input value={data.direccion} onChange={(e) => set("direccion", e.target.value)} />
       </Field>
       <Field label="Web o red social" hint="Opcional." wide>
@@ -158,7 +179,15 @@ function Form({ initial, onSaved, onCancel }: { initial: Partial<Profesional>; o
       <div className="field" data-wide>
         <Toggle checked={data.verificado} onChange={(v) => set("verificado", v)} label="Asociado verificado por la Cámara" />
         <Toggle checked={data.activo} onChange={(v) => set("activo", v)} label="Visible en la web" />
+        {initial.estado && initial.estado !== "aprobado" && (
+          <span className="field__hint">
+            Su alta está {initial.estado === "pendiente" ? "pendiente" : "rechazada"}: se aprueba desde <a href="/admin/altas">Altas</a>.
+          </span>
+        )}
       </div>
+      <p className="field__hint" data-wide>
+        Para publicar una ficha nueva hacen falta foto, profesión, localidad, dirección, teléfono y email (y matrícula si es profesional).
+      </p>
       <div className="form-actions" data-wide>
         <button type="button" className="btn btn--ghost-dark" onClick={onCancel}>
           Cancelar
@@ -176,6 +205,7 @@ export function ProfesionalesAdmin() {
   const { confirm, dialog } = useConfirm();
   const [items, setItems] = useState<Profesional[] | null>(null);
   const [q, setQ] = useState("");
+  const [rol, setRol] = useState("todos");
   const [editing, setEditing] = useState<Partial<Profesional> | null>(null);
 
   const load = useCallback(async () => {
@@ -193,10 +223,12 @@ export function ProfesionalesAdmin() {
 
   const list = useMemo(
     () =>
-      (items ?? []).filter((p) =>
-        coincide(q, [p.nombre, p.estudio, p.numero, p.titulo, p.localidad, p.direccion, p.email, p.web, p.descripcion], [p.telefono])
+      (items ?? []).filter(
+        (p) =>
+          (rol === "todos" || p.rol === rol) &&
+          coincide(q, [p.nombre, p.estudio, p.numero, p.titulo, p.matricula, p.localidad, p.direccion, p.email, p.web, p.descripcion], [p.telefono])
       ),
-    [items, q]
+    [items, q, rol]
   );
 
   const patch = async (p: Profesional, change: Partial<Profesional>) => {
@@ -220,9 +252,12 @@ export function ProfesionalesAdmin() {
 
   return (
     <>
-      <PageHead title="Profesionales" text="Directorio de profesionales asociados. Los visibles aparecen en la web con su tarjeta; la sección se muestra cuando hay al menos uno.">
+      <PageHead
+        title="Asociados y profesionales"
+        text="Administradores de consorcios asociados y profesionales. Los visibles aparecen en la web con su tarjeta; la sección se muestra cuando hay al menos uno."
+      >
         <button type="button" className="btn btn--navy" onClick={() => setEditing({})}>
-          + Nuevo profesional
+          + Nueva ficha
         </button>
       </PageHead>
 
@@ -231,10 +266,50 @@ export function ProfesionalesAdmin() {
           <Icon name="search" size={18} />
           <input type="search" placeholder="Buscar por nombre, estudio, teléfono, N.º…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar profesional" />
         </div>
+        <select value={rol} onChange={(e) => setRol(e.target.value)} aria-label="Filtrar por tipo">
+          <option value="todos">Asociados y profesionales</option>
+          <option value="asociado">Solo asociados</option>
+          <option value="profesional">Solo profesionales</option>
+        </select>
         {items && (
           <span className="toolbar__count">
             {list.length} de {items.length}
           </span>
+        )}
+        {list.length > 0 && (
+          <button
+            type="button"
+            className="btn btn--ghost-dark btn--sm"
+            title="Baja a Excel las fichas que se ven con el filtro actual"
+            onClick={() =>
+              descargarExcel(`asociados-y-profesionales-${new Date().toISOString().slice(0, 10)}`, [
+                {
+                  nombre: "Asociados y profesionales",
+                  columnas: [
+                    { clave: "nombre", titulo: "Nombre y apellido", ancho: 30 },
+                    { clave: "numero", titulo: "N.º de asociado", ancho: 14 },
+                    { clave: "rol", titulo: "Tipo", ancho: 12 },
+                    { clave: "titulo", titulo: "Profesión", ancho: 28 },
+                    { clave: "matricula", titulo: "Matrícula", ancho: 16 },
+                    { clave: "estudio", titulo: "Estudio", ancho: 26 },
+                    { clave: "localidad", titulo: "Localidad", ancho: 16 },
+                    { clave: "direccion", titulo: "Dirección de la oficina", ancho: 28 },
+                    { clave: "telefono", titulo: "Teléfono", ancho: 16 },
+                    { clave: "email", titulo: "Email", ancho: 28 },
+                    { clave: "web", titulo: "Web o red social", ancho: 32 },
+                    { clave: "descripcion", titulo: "Descripción", ancho: 40 },
+                    { clave: "desde", titulo: "Ejerce desde (año)" },
+                    { clave: "verificado", titulo: "Verificado" },
+                    { clave: "activo", titulo: "Visible" },
+                    { clave: "estado", titulo: "Estado" },
+                  ],
+                  filas: list.map((p) => ({ ...p, verificado: p.verificado ? "Sí" : "No", activo: p.activo ? "Sí" : "No" })),
+                },
+              ]).catch((err) => toast("error", errorMessage(err)))
+            }
+          >
+            <Icon name="download" size={16} /> Exportar
+          </button>
         )}
       </div>
 
@@ -273,7 +348,10 @@ export function ProfesionalesAdmin() {
                       <button type="button" className="link-btn" onClick={() => setEditing(p)}>
                         {p.nombre}
                       </button>
-                      {(p.estudio || p.titulo) && <small>{p.estudio || p.titulo}</small>}
+                      <small>
+                        {p.rol === "profesional" ? "Profesional" : "Asociado"}
+                        {(p.estudio || p.titulo) && ` · ${p.estudio || p.titulo}`}
+                      </small>
                     </span>
                   </th>
                   <td data-label="N.º" className="num-cell">
@@ -293,6 +371,11 @@ export function ProfesionalesAdmin() {
                     />
                   </td>
                   <td data-label="Visible">
+                    {p.estado && p.estado !== "aprobado" && (
+                      <span className="pill" data-state={p.estado === "pendiente" ? "warn" : "off"} title="Se aprueba desde Altas">
+                        {p.estado === "pendiente" ? "Pendiente" : "Rechazado"}
+                      </span>
+                    )}{" "}
                     <input
                       type="checkbox"
                       role="switch"
@@ -331,7 +414,7 @@ export function ProfesionalesAdmin() {
         </div>
       )}
 
-      <Drawer open={!!editing} title={editing?.id ? `Editar ${editing.nombre}` : "Nuevo profesional"} onClose={() => setEditing(null)}>
+      <Drawer open={!!editing} title={editing?.id ? `Editar ${editing.nombre}` : "Nueva ficha"} onClose={() => setEditing(null)}>
         {editing && <Form key={editing.id ?? "nuevo"} initial={editing} onSaved={upsert} onCancel={() => setEditing(null)} />}
       </Drawer>
       {dialog}

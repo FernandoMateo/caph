@@ -7,8 +7,18 @@ import { Profesionales } from "../components/Profesionales";
 import { Proveedores } from "../components/Proveedores";
 import { Reveal } from "../components/Reveal";
 import { Validador } from "../components/Validador";
-import { LINKS, NOMBRE_LEGAL, RUBROS } from "../lib/data";
-import { getCapacitaciones, getGaleria, getHonorarios, getProfesionales, getProveedores, type Capacitacion } from "../lib/content";
+import { LINKS, NOMBRE_LEGAL } from "../lib/data";
+import {
+  getCapacitaciones,
+  getGaleria,
+  getHonorarios,
+  getProfesionales,
+  getProveedores,
+  getRubros,
+  getTextos,
+  type Capacitacion,
+} from "../lib/content";
+import { parTitulo, renglones } from "../lib/textos";
 import { Galeria3D } from "../components/Galeria3D";
 import { Intro } from "../components/Intro";
 import { Spotlight } from "../components/Spotlight";
@@ -45,29 +55,30 @@ function ordenarAgenda(items: Capacitacion[]) {
 
 const delay = (ms: number) => ({ "--d": `${ms}ms` }) as React.CSSProperties;
 
-const BENEFICIOS = [
-  ["Defensa de intereses", "Representación del sector ante organismos públicos y privados."],
-  ["Capacitaciones exclusivas", "Talleres, cursos y seminarios, con bonificaciones para asociados."],
-  ["Asesoramiento integral", "Soporte legal, contable y técnico para tu práctica diaria."],
-  ["Documentación y alertas", "Documentación modelo, normativas y novedades de la propiedad horizontal."],
-  ["Networking", "Conexión con colegas y nuevas oportunidades de trabajo."],
-  ["Voz institucional", "Tu opinión cuenta en las decisiones que afectan a la profesión."],
-];
-
 export default async function Home() {
-  const [hon, proveedores, profesionales, capacitaciones, fotos] = await Promise.all([
+  const [hon, proveedores, profesionales, capacitaciones, fotos, t, rubros] = await Promise.all([
     getHonorarios(),
     getProveedores(),
     getProfesionales(),
     getCapacitaciones(),
     getGaleria(),
+    getTextos(),
+    getRubros(),
   ]);
+  const beneficios = renglones(t.beneficios).map(parTitulo);
   const verificados = proveedores.filter((p) => p.v).length;
   const desde = hon.categorias.length ? Math.min(...hon.categorias.map((c) => c.minimo20)) : 0;
   const destacados = capacitaciones.filter((c) => c.destacado);
   const programa = destacados.find((c) => !fecha(c.fecha).pasada) ?? destacados[0];
   const agenda = ordenarAgenda(capacitaciones.filter((c) => c !== programa));
-  const rubrosTop = ["ascensores", "seguridad", "electricidad", "pintura"].map((r) => RUBROS[r]);
+  // los cuatro rubros con más proveedores
+  const conteo = new Map<string, number>();
+  proveedores.forEach((p) => conteo.set(p.r, (conteo.get(p.r) ?? 0) + 1));
+  const rubrosTop = [...conteo.entries()]
+    .filter(([r]) => r !== "otros" && rubros[r])
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4)
+    .map(([r]) => rubros[r]);
 
   return (
     <>
@@ -86,17 +97,15 @@ export default async function Home() {
           <div className="hero__copy">
             <p className="eyebrow hero__eyebrow">Cámara de la Propiedad Horizontal · Santa Fe</p>
             <h1 id="hero-title" className="hero__title">
-              La fuerza de una profesión, <span>la fuerza de sus protagonistas.</span>
+              {t.hero_titulo} <span>{t.hero_destacado}</span>
             </h1>
-            <p className="hero__lede">
-              La Cámara que representa a los administradores de consorcios de Santa Fe, 1.ª Circunscripción.
-            </p>
+            <p className="hero__lede">{t.hero_bajada}</p>
             <div className="hero__actions">
-              <a className="btn btn--yellow" href={LINKS.asociarse} target="_blank" rel="noopener noreferrer">
+              <a className="btn btn--yellow" href={LINKS.asociarse}>
                 Quiero asociarme
                 <Icon name="arrow" size={18} />
               </a>
-              <a className="btn btn--glass" href={LINKS.proveedor} target="_blank" rel="noopener noreferrer">
+              <a className="btn btn--glass" href={LINKS.proveedor}>
                 Soy proveedor
               </a>
             </div>
@@ -302,11 +311,19 @@ export default async function Home() {
                       </dl>
                       {programa.beneficio && <p className="programa__benefit">{programa.beneficio}</p>}
                       <div className="programa__actions">
-                        {programa.inscripcionUrl && !fecha(programa.fecha).pasada && (
-                          <a className="btn btn--yellow" href={programa.inscripcionUrl} target="_blank" rel="noopener noreferrer">
-                            Inscribirme
+                        {programa.online ? (
+                          <a className="btn btn--yellow" href="/portal">
+                            Cursalo online en tu portal
                             <Icon name="arrow" size={18} />
                           </a>
+                        ) : (
+                          programa.inscripcionUrl &&
+                          !fecha(programa.fecha).pasada && (
+                            <a className="btn btn--yellow" href={programa.inscripcionUrl} target="_blank" rel="noopener noreferrer">
+                              Inscribirme
+                              <Icon name="arrow" size={18} />
+                            </a>
+                          )
                         )}
                         {programa.programaUrl && (
                           <a className="btn btn--glass" href={programa.programaUrl} target="_blank" rel="noopener noreferrer">
@@ -338,10 +355,17 @@ export default async function Home() {
                               {f.pasada && <span className="tag">Realizado</span>}
                             </p>
                             {t.descripcion && <p className="agenda__meta">{t.descripcion}</p>}
-                            {!f.pasada && t.inscripcionUrl && (
-                              <a href={t.inscripcionUrl} target="_blank" rel="noopener noreferrer" className="link-arrow agenda__cta">
-                                Inscribirme <Icon name="arrow" size={18} />
+                            {t.online ? (
+                              <a href="/portal" className="link-arrow agenda__cta">
+                                Cursalo online en tu portal <Icon name="arrow" size={18} />
                               </a>
+                            ) : (
+                              !f.pasada &&
+                              t.inscripcionUrl && (
+                                <a href={t.inscripcionUrl} target="_blank" rel="noopener noreferrer" className="link-arrow agenda__cta">
+                                  Inscribirme <Icon name="arrow" size={18} />
+                                </a>
+                              )
                             )}
                             <ul className="agenda__topics">
                               {t.temas.map((x) => (
@@ -381,13 +405,13 @@ export default async function Home() {
                     son asociados verificados.
                   </p>
                 </div>
-                <a className="btn btn--navy" href={LINKS.proveedor} target="_blank" rel="noopener noreferrer">
+                <a className="btn btn--navy" href={LINKS.proveedor}>
                   Quiero ser proveedor
                   <Icon name="arrow" size={18} />
                 </a>
               </header>
               <div data-reveal>
-                <Proveedores proveedores={proveedores} />
+                <Proveedores proveedores={proveedores} rubros={rubros} />
               </div>
             </div>
           </section>
@@ -404,8 +428,8 @@ export default async function Home() {
                     </h2>
                     <p className="lede">Administradores y profesionales de la propiedad horizontal. Contactalos directo desde su tarjeta.</p>
                   </div>
-                  <a className="btn btn--navy" href={LINKS.asociarse} target="_blank" rel="noopener noreferrer">
-                    Sumarme como asociado
+                  <a className="btn btn--navy" href="/alta">
+                    Sumarme al directorio
                     <Icon name="arrow" size={18} />
                   </a>
                 </header>
@@ -422,14 +446,9 @@ export default async function Home() {
               <div data-reveal>
                 <p className="eyebrow">La Cámara</p>
                 <h2 id="qs-title" className="h2">
-                  Uniendo a la comunidad <span className="muted">de administradores.</span>
+                  {t.camara_titulo} <span className="muted">{t.camara_destacado}</span>
                 </h2>
-                <p className="lede">
-                  CAPH Santa Fe existe para que los administradores no trabajen solos. Defendemos los intereses del
-                  sector ante organismos públicos y privados, fomentamos la colaboración entre colegas y elevamos los
-                  estándares de la profesión, para que propietarios e inquilinos tengan administraciones más seguras y
-                  transparentes.
-                </p>
+                <p className="lede">{t.camara_texto}</p>
               </div>
               <ul className="services">
                 <li data-reveal data-glow>
@@ -477,28 +496,25 @@ export default async function Home() {
           )}
 
           {/* ---------- ASOCIARSE ---------- */}
-          <section className="block" id="asociarse" aria-labelledby="as-title">
+          <section className={t.conv_visible === "si" ? "block" : "block block--last"} id="asociarse" aria-labelledby="as-title">
             <div className="wrap">
               <div className="panel panel--navy join">
                 <div className="join__head" data-reveal>
                   <p className="eyebrow">Asociate</p>
                   <h2 id="as-title" className="h2 h2--xl">
-                    Sumá tu voz a la Cámara
+                    {t.asociarse_titulo}
                   </h2>
-                  <p className="lede">
-                    Ser parte te da el respaldo y las herramientas para crecer profesionalmente y fortalecer tu red en
-                    el sector.
-                  </p>
-                  <a className="btn btn--yellow btn--lg" href={LINKS.asociarse} target="_blank" rel="noopener noreferrer">
+                  <p className="lede">{t.asociarse_texto}</p>
+                  <a className="btn btn--yellow btn--lg" href={LINKS.asociarse}>
                     Quiero asociarme
                     <Icon name="arrow" size={18} />
                   </a>
                 </div>
                 <ul className="join__list">
-                  {BENEFICIOS.map(([t, d], i) => (
-                    <li key={t} data-reveal style={delay(i * 60)}>
-                      <h3>{t}</h3>
-                      <p>{d}</p>
+                  {beneficios.map(([titulo, d], i) => (
+                    <li key={titulo + i} data-reveal style={delay(i * 60)}>
+                      <h3>{titulo}</h3>
+                      {d && <p>{d}</p>}
                     </li>
                   ))}
                 </ul>
@@ -506,42 +522,39 @@ export default async function Home() {
             </div>
           </section>
 
-          {/* ---------- CONVOCATORIA ---------- */}
-          <section className="block block--last" id="convocatoria" aria-labelledby="conv-title">
-            <div className="wrap">
-              <div className="panel panel--soft conv">
-                <div data-reveal>
-                  <p className="eyebrow">Convocatoria</p>
-                  <h2 id="conv-title" className="h2">
-                    Convocatoria abierta a arquitectos matriculados
-                  </h2>
-                  <p className="lede">
-                    Sumate a la red de asistencia técnica. En convenio con el Colegio de Arquitectura y Urbanismo de la
-                    Provincia de Santa Fe, Distrito 1, armamos una nómina de profesionales para asesorar a los
-                    administradores asociados.
-                  </p>
-                  <a className="btn btn--navy" href={LINKS.convocatoria} target="_blank" rel="noopener noreferrer">
-                    Inscribirme a la convocatoria
-                    <Icon name="arrow" size={18} />
-                  </a>
-                  <p className="conv__fine">
-                    Los datos se cotejan con el Colegio para verificar la matrícula. Integrar la nómina no implica
-                    contratación automática. CPN Natalia Cerquetti, Presidenta CAPH Santa Fe.
-                  </p>
-                </div>
-                <div className="conv__areas" data-reveal style={delay(100)}>
-                  <h3 className="h4">Áreas de intervención</h3>
-                  <ul>
-                    <li>Evaluación edilicia y mantenimiento</li>
-                    <li>Diagnóstico de patologías, filtraciones, humedades y deterioros estructurales</li>
-                    <li>Inspección y seguimiento de obras</li>
-                    <li>Informes técnicos, relevamientos y presupuestos</li>
-                    <li>Seguridad edilicia y normativa</li>
-                  </ul>
+          {/* ---------- CONVOCATORIA (se muestra u oculta desde el panel) ---------- */}
+          {t.conv_visible === "si" && (
+            <section className="block block--last" id="convocatoria" aria-labelledby="conv-title">
+              <div className="wrap">
+                <div className="panel panel--soft conv">
+                  <div data-reveal>
+                    <p className="eyebrow">Convocatoria</p>
+                    <h2 id="conv-title" className="h2">
+                      {t.conv_titulo}
+                    </h2>
+                    <p className="lede">{t.conv_texto}</p>
+                    {t.conv_url && (
+                      <a className="btn btn--navy" href={t.conv_url} target="_blank" rel="noopener noreferrer">
+                        Inscribirme a la convocatoria
+                        <Icon name="arrow" size={18} />
+                      </a>
+                    )}
+                    {t.conv_letra_chica && <p className="conv__fine">{t.conv_letra_chica}</p>}
+                  </div>
+                  {renglones(t.conv_areas).length > 0 && (
+                    <div className="conv__areas" data-reveal style={delay(100)}>
+                      <h3 className="h4">Áreas de intervención</h3>
+                      <ul>
+                        {renglones(t.conv_areas).map((a) => (
+                          <li key={a}>{a}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
-          </section>
+            </section>
+          )}
 
           <footer className="footer" id="contacto">
             <div className="wrap footer__grid">
@@ -576,14 +589,13 @@ export default async function Home() {
                 <h2 className="footer__title">Accesos</h2>
                 <ul className="footer__list">
                   <li>
-                    <a href={LINKS.asociarse} target="_blank" rel="noopener noreferrer">
-                      Alta de administradores
-                    </a>
+                    <a href={LINKS.asociarse}>Alta de administradores</a>
                   </li>
                   <li>
-                    <a href={LINKS.proveedor} target="_blank" rel="noopener noreferrer">
-                      Alta de proveedores
-                    </a>
+                    <a href={LINKS.proveedor}>Alta de proveedores</a>
+                  </li>
+                  <li>
+                    <a href={LINKS.profesional}>Alta de profesionales</a>
                   </li>
                   <li>
                     <a href="#administradores">Verificar asociado</a>

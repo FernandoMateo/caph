@@ -9,12 +9,16 @@ import { LogoMark } from "../Logo";
 import { ToastProvider } from "./ui";
 
 const NAV = [
+  ["/admin/altas", "Altas"],
   ["/admin/honorarios", "Honorarios"],
   ["/admin/proveedores", "Proveedores"],
-  ["/admin/profesionales", "Profesionales"],
+  ["/admin/profesionales", "Asociados y profesionales"],
   ["/admin/contabilidad", "Contabilidad"],
   ["/admin/capacitaciones", "Capacitaciones"],
+  ["/admin/cursos", "Cursos online"],
   ["/admin/galeria", "Galería"],
+  ["/admin/textos", "Textos y rubros"],
+  ["/admin/datos", "Importar y exportar"],
 ];
 
 function Login() {

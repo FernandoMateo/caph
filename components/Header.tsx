@@ -12,6 +12,7 @@ const NAV = [
   ["Profesionales", "#profesionales"],
   ["La Cámara", "#quienes-somos"],
   ["Contacto", "#contacto"],
+  ["Mi portal", "/portal"],
 ];
 
 export function Header({ profesionales = true }: { profesionales?: boolean }) {
@@ -52,7 +53,7 @@ export function Header({ profesionales = true }: { profesionales?: boolean }) {
               </li>
             ))}
           </ul>
-          <a className="btn btn--yellow btn--sm" href={LINKS.asociarse} target="_blank" rel="noopener noreferrer">
+          <a className="btn btn--yellow btn--sm" href={LINKS.asociarse}>
             Quiero asociarme
           </a>
         </nav>

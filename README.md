@@ -26,20 +26,51 @@ pocketbase/pb_hooks/        lógica de la contabilidad (cuotas, imputación de p
 3. Copiar `.env.example` a `.env.local` (`PB_URL=http://127.0.0.1:8090`).
 4. `npm install` y `npm run dev` → http://localhost:3000 y http://localhost:3000/admin
 
-## Profesionales
+## Altas y cuentas del portal
 
-En `/admin/profesionales`: directorio de profesionales asociados (nombre, estudio, N.º de asociado, título, contacto, foto y descripción). Los marcados como visibles aparecen en la web en la sección **Profesionales**, con tarjetas 3D; la sección (y su enlace en el menú) aparece cuando hay al menos uno. No cargar DNI, CUIT ni domicilios particulares: todo lo que está en esta colección es público.
+Asociados (administradores de consorcios), proveedores y profesionales se dan de alta solos en `/alta`: crean su cuenta (colección `cuentas`, con DNI/CUIT y teléfono que solo ven ellos y el panel) y cargan su ficha con foto. Quien ya figura en la web marca "Ya figuro" y pide acceso a su ficha actual.
+
+Nada se publica sin aprobación: en `/admin/altas` el panel aprueba (y asigna el N.º), rechaza con un motivo o vincula la cuenta a una ficha existente. Si el dueño cambia una ficha ya publicada, sigue visible y aparece en "Cambios para revisar". Las reglas viven en `pocketbase/pb_hooks/fichas.js`: el dueño no puede tocar estado, visibilidad, verificado ni N.º, y para publicar una ficha (también desde el panel) hacen falta foto/logo, teléfono, email y dirección, más profesión y localidad (matrícula si es profesional) o razón social y rubro (proveedores). Las fichas cargadas antes de esto quedaron aprobadas tal como estaban.
+
+## Portal y carnet digital
+
+En `/portal` cada cuenta ingresa con su email y contraseña (sesión aparte de la del panel). Ve el estado de su alta (en revisión, rechazada con el motivo, suspendida), edita su ficha y cambia su contraseña. Cuando la Cámara aprueba el alta aparece su **carnet digital**: se da vuelta con un toque y se descarga en PDF (A4, frente y dorso a tamaño real para imprimir). El PDF se genera en el navegador (`lib/carnet-pdf.tsx`, con `@react-pdf/renderer`).
+
+El QR del carnet abre `/verificar/<id>`, una página pública que dice si el carnet está vigente: lo está mientras la ficha esté aprobada, visible y sin mora.
+
+Cada socio tiene además su **tarjeta para compartir** en `/carnet/<id>`: el carnet (se da vuelta), sus datos de contacto con botones de WhatsApp, llamar, email y web, "Guardar contacto" (descarga un .vcf para la agenda del teléfono) y "Compartir". Al pegar el link en WhatsApp se ve la vista previa con la foto y el nombre. Desde el portal se copia el link, se manda por WhatsApp o se comparte con el menú del teléfono. Muestra solo datos que ya son públicos en la web, y si la ficha deja de estar vigente el link dice que no está disponible. Si la Cámara la oculta o la da de baja, el mismo QR pasa a decir "No vigente".
+
+## Asociados y profesionales
+
+En `/admin/profesionales`: asociados (administradores de consorcios) y profesionales, distinguidos por el campo `rol` (nombre, estudio, N.º, título, matrícula, contacto, foto y descripción). Los marcados como visibles aparecen en la web en la sección **Profesionales**: un carrusel con la foto del centro grande y a color (las de los costados en gris), contacto sobre la foto y filtros por tipo; también se puede ver como grilla de tarjetas 3D. La sección (y su enlace en el menú) aparece cuando hay al menos uno. Para que una ficha se vea en la web tiene que estar completa (foto incluida); aprobada pero oculta puede estar incompleta. No cargar DNI, CUIT ni domicilios particulares: todo lo que está en esta colección es público.
 
 Los buscadores de proveedores y profesionales (web y panel) buscan en todos los datos, sin distinguir mayúsculas ni acentos, y reconocen teléfonos escritos de cualquier forma (`lib/buscar.ts`).
 
-## Contabilidad (cuotas de proveedores)
+## Cursos online y certificados
 
-En `/admin/contabilidad`. Nada de esto es público: solo lo ven los usuarios del panel.
+En `/admin/cursos` cada capacitación (de las cargadas en Capacitaciones) puede tener temario para cursarse desde el portal: módulos con lecciones de video (link de YouTube o Vimeo; conviene subirlos «sin listar»), PDF (protegido: solo lo abren los inscriptos) o texto.
 
-- **Alta:** al crear un proveedor se carga su cuota mensual, la inscripción (opcional), la fecha de alta y el día de vencimiento (por defecto, el día del alta). A los proveedores que ya existían se les da de alta la cuota desde Contabilidad.
-- **Cuotas:** `pocketbase/pb_hooks` genera una por mes desde el mes del alta; vence el día elegido (en meses más cortos, el último día). Se generan con el cron diario de PocketBase y cada vez que se abre Contabilidad. Cambiar el monto o el día afecta solo a las cuotas que todavía no vencieron; una cuota puntual se puede ajustar a mano (por ejemplo, bonificarla).
-- **Pagos:** se registran con fecha, monto, medio y comprobante. Se imputan solos a las cuotas más viejas, así que sirven pagos parciales o de varios meses juntos.
-- **Mora:** si una cuota sigue impaga 1 mes y 10 días después de su vencimiento, el proveedor se oculta de la web (`oculto_mora`); vuelve a aparecer solo cuando se registra el pago. No hay recargos.
+- **Inscripción y avance:** una cuenta aprobada se inscribe desde su portal y cursa en `/portal/curso/<id>`, marcando cada lección como vista. Los títulos de los módulos los ve cualquier cuenta; las lecciones, solo los inscriptos.
+- **Certificado:** si la capacitación tiene "Emite certificado", al completar todas las lecciones `pocketbase/pb_hooks/cursos.js` le asigna un código único. Desde el portal se descarga el PDF (A4 apaisado, con la carga horaria y un QR); el QR abre `/verificar/certificado/<código>`, que confirma que es válido.
+- **Presenciales:** en Inscriptos, el panel puede inscribir a una cuenta como "ya lo completó (asistió)" y el certificado se emite al instante. Los inscriptos se exportan a Excel.
+- En la web, las capacitaciones online muestran "Cursalo online en tu portal" en lugar del link de inscripción.
+
+## Textos, rubros, importar y exportar
+
+- **Textos y rubros** (`/admin/textos`): los textos principales de la home (inicio, La Cámara, Asociate y sus beneficios, la convocatoria con su interruptor para mostrarla u ocultarla) y los rubros del directorio de proveedores (agregar, renombrar, ordenar; un rubro con proveedores no se puede borrar). Un texto vacío vuelve al original (`lib/textos.ts`). `pocketbase/pb_hooks/rubros.pb.js` mantiene las opciones de `proveedores.rubro` iguales a la colección.
+- **Importar y exportar** (`/admin/datos`): bajar a Excel las colecciones elegidas (una hoja cada una; sirve de copia de seguridad) e importar asociados, profesionales o proveedores desde Excel o CSV, con vista previa fila por fila. Se reconocen por N.º o por nombre: los que existen se actualizan (una celda vacía no borra datos) y los nuevos entran aprobados pero ocultos, hasta completar la ficha con foto. Hay una plantilla para descargar. Las listas de Proveedores y de Asociados y profesionales tienen además su botón **Exportar**, que baja lo que se ve con el filtro actual.
+- **Cuota para todos los que no tienen** (en Contabilidad): da de alta la cuota con la tarifa vigente a todos los de un tipo que no tienen, desde la fecha elegida y con o sin inscripción.
+
+## Contabilidad (cuotas de asociados, proveedores y profesionales)
+
+En `/admin/contabilidad`. No es público: lo ven los usuarios del panel y, cada uno lo suyo, los usuarios del portal.
+
+- **Tarifas:** al pie de Contabilidad, la cuota e inscripción de cada tipo (asociados $ 37.500, proveedores $ 18.750; profesionales sin cargo por ahora, con el interruptor "Pagan cuota" apagado) y los datos para transferir que ven los usuarios. Se aplican a las altas nuevas: al aprobar un alta desde Altas se le crea la cuota con la tarifa de su tipo.
+- **Alta manual:** al crear un proveedor desde el panel se carga su cuota (arranca con la tarifa). A quienes ya existían (por ejemplo, los asociados cargados antes del portal) se les da de alta la cuota desde Contabilidad.
+- **Cuotas:** `pocketbase/pb_hooks/contabilidad.js` genera una por mes desde el mes del alta; vence el día elegido (en meses más cortos, el último día). Se generan con el cron diario de PocketBase y cada vez que se abre Contabilidad. Cambiar el monto o el día afecta solo a las cuotas que todavía no vencieron; una cuota puntual se puede ajustar a mano (por ejemplo, bonificarla).
+- **Pagos:** el panel los registra con fecha, monto, medio y comprobante. Desde el portal, cada usuario **informa** su pago con el comprobante obligatorio: queda "a confirmar" y no cuenta hasta que el panel lo confirma (o lo rechaza con un motivo que el usuario ve). Los confirmados se imputan solos a las cuotas más viejas, así que sirven pagos parciales o de varios meses juntos.
+- **Mora (suspensión automática):** si una cuota sigue impaga 1 mes y 10 días después de su vencimiento, la ficha se oculta de la web y el carnet pasa a "No vigente" (`oculto_mora`); se reactivan solos cuando se confirma el pago. No hay recargos.
+- **Débito automático:** la colección `medios_debito` (CBU, Mercado Pago o tarjeta, con su id de mandato) y el campo `suscripciones.debito` quedan listos para integrarlo; todavía no se usa.
 
 ## Usuarios del panel
 
