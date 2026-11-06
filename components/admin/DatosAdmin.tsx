@@ -18,7 +18,8 @@ const COLECCIONES: { nombre: string; titulo: string; archivos?: string[]; titula
   { nombre: "cuentas", titulo: "Cuentas del portal" },
   { nombre: "suscripciones", titulo: "Suscripciones", titular: true },
   { nombre: "cuotas", titulo: "Cuotas", titular: true },
-  { nombre: "pagos", titulo: "Pagos", archivos: ["comprobante"], titular: true },
+  // el comprobante es un archivo protegido: sale su nombre (se abre desde Contabilidad), no un link
+  { nombre: "pagos", titulo: "Pagos", titular: true },
   { nombre: "tarifas", titulo: "Tarifas" },
   { nombre: "medios_debito", titulo: "Medios de débito" },
   { nombre: "capacitaciones", titulo: "Capacitaciones", archivos: ["programa_pdf"] },
@@ -410,7 +411,7 @@ export function DatosAdmin() {
       />
       <section className="admin-section">
         <h2>Exportar a Excel</h2>
-        <p className="section-hint">Elegí qué bajar: cada uno sale en su propia hoja. Las fotos y comprobantes salen como link.</p>
+        <p className="section-hint">Elegí qué bajar: cada uno sale en su propia hoja. Las fotos y PDFs salen como link; los comprobantes, con su nombre de archivo.</p>
         <Exportar />
       </section>
       <section className="admin-section">

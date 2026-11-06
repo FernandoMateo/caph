@@ -780,6 +780,12 @@ body:has(.login) {
   border-radius: 50%;
   color: var(--muted);
 }
+button.row-link {
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
 .row-link:hover {
   background: var(--surface-2);
   color: var(--navy);

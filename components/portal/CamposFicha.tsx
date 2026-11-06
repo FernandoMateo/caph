@@ -157,13 +157,13 @@ export function CamposFicha({
           <div className="logo-field__controls">
             <input
               type="file"
-              accept={persona ? "image/png,image/jpeg,image/webp" : "image/png,image/jpeg,image/webp,image/svg+xml"}
+              accept="image/png,image/jpeg,image/webp"
               aria-label={persona ? "Foto de perfil" : "Logo o foto"}
               onChange={(e) => onFoto(e.target.files?.[0] ?? null)}
             />
             <span className="field__hint">
               {fotoActual && !foto ? "Elegí un archivo solo si querés cambiarla. " : ""}
-              {persona ? "JPG, PNG o WebP, hasta 5 MB. Cuadrada, de frente y con buena luz." : "PNG, JPG, WebP o SVG, hasta 3 MB."}
+              {persona ? "JPG, PNG o WebP, hasta 5 MB. Cuadrada, de frente y con buena luz." : "PNG, JPG o WebP, hasta 3 MB."}
             </span>
           </div>
         </div>

@@ -76,96 +76,33 @@ En `/admin/contabilidad`. No es público: lo ven los usuarios del panel y, cada 
 
 Los usuarios del panel son registros de la colección **users** de PocketBase (no se pueden registrar solos).
 
-1. Entrar al dashboard de PocketBase: `https://caphsf.ar/_/` (la web lo reenvía; en local `http://127.0.0.1:8090/_/`) con el superusuario.
-2. Colección **users** → **New record** → email, contraseña y marcar **verified**.
+1. Entrar al dashboard de PocketBase con el superusuario: en el servidor por túnel SSH (`deploy/tunel-vps.ps1`, después `http://127.0.0.1:8091/_/`); en local `http://127.0.0.1:8090/_/`. Desde el dominio público no se publica.
+2. Colección **users** → **New record** → email, contraseña (10 caracteres como mínimo) y marcar **verified**.
 3. Esa persona entra en `https://caphsf.ar/admin`.
 
 Para quitar el acceso, borrar el registro. El superusuario es solo para mantenimiento; no compartirlo.
 
-## Publicación en el VPS (Ubuntu + nginx)
+## Seguridad
 
-Ejemplo con dos dominios: `caphsf.ar` (web) y `api.caphsf.ar` (PocketBase).
+Cómo queda protegido el servidor (lo instala `deploy/setup-vps.sh`, ver más abajo):
 
-### 1. PocketBase
+- **Solo HTTPS por Caddy** (puertos 80/443). PocketBase y la web escuchan en `127.0.0.1`: desde internet no se llega a sus puertos. Firewall (ufw) con solo SSH, 80 y 443.
+- **Lo privado de PocketBase no se publica**: el dashboard `/_/`, el login de superusuarios, backups, ajustes y logs responden 404 desde internet. Se entra por túnel SSH (`deploy/tunel-vps.ps1`) a `http://127.0.0.1:8091/_/`.
+- **Límites de intentos por IP** (`pb_hooks/seguridad.pb.js`, activo con `CAPH_PRODUCCION=1`): 10 logins por minuto, 5 altas cada 10 minutos, pedidos de recuperar contraseña limitados. Toma la IP real que manda Caddy.
+- **Backups**: PocketBase hace uno diario a las 04:30 y guarda 14 (`pb_data/backups`). Además, cada deploy que trae migraciones copia antes la base en `/opt/caph/backups` (últimas 10). Conviene bajar una copia fuera del servidor cada tanto.
+- **SSH**: fail2ban contra fuerza bruta. Si el usuario de despliegue tiene llave, se apaga el login por contraseña y el de root.
+- **Actualizaciones de seguridad** del sistema automáticas (unattended-upgrades).
 
-```bash
-sudo mkdir -p /opt/caph/pocketbase && cd /opt/caph/pocketbase
-wget https://github.com/pocketbase/pocketbase/releases/download/v0.40.6/pocketbase_0.40.6_linux_amd64.zip
-unzip pocketbase_0.40.6_linux_amd64.zip && rm pocketbase_0.40.6_linux_amd64.zip
-# copiar la carpeta pb_migrations del repo a /opt/caph/pocketbase/pb_migrations
-./pocketbase superuser upsert TU_EMAIL TU_CONTRASEÑA
-```
+En el código:
 
-`/etc/systemd/system/caph-pocketbase.service`:
+- **Quién toca qué**: reglas de cada colección (migraciones) + hooks (`pb_hooks/fichas.js`). Un usuario del portal no puede aprobarse, cambiar su rol, su estado ni hacerse visible; solo informa pagos de su propia ficha y quedan "a confirmar".
+- **Enlaces**: la web de una ficha solo se guarda si es `http(s)://` (un `javascript:` se rechaza en el servidor y además la web nunca lo pone en un link).
+- **Archivos**: los comprobantes de pago y los PDF de los cursos son protegidos (se abren solo con sesión). Desde el portal no se aceptan logos SVG (pueden llevar código).
+- **Altas**: campo trampa invisible contra robots y, si se configura, Cloudflare Turnstile: clave pública `NEXT_PUBLIC_TURNSTILE_SITE_KEY` en `/opt/caph/web/.env.local` (se usa al compilar) y la secreta `TURNSTILE_SECRET` en `/opt/caph/pocketbase/.env`. Sin claves, el alta funciona igual con el campo trampa y el límite de intentos.
+- **Contraseñas**: 10 caracteres como mínimo para el panel, 8 para el portal.
+- **Encabezados**: la web no se puede meter en un iframe ajeno, el navegador no adivina tipos de archivo y se exige HTTPS (`next.config.mjs`).
 
-```ini
-[Unit]
-Description=CAPH PocketBase
-After=network.target
-
-[Service]
-WorkingDirectory=/opt/caph/pocketbase
-ExecStart=/opt/caph/pocketbase/pocketbase serve --http=127.0.0.1:8090
-Restart=always
-User=www-data
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Las migraciones se aplican solas al arrancar.
-
-### 2. Web (Next.js)
-
-```bash
-cd /opt/caph/web            # el repo
-cp .env.example .env.local  # PB_URL=http://127.0.0.1:8090
-npm ci && npm run build
-```
-
-`/etc/systemd/system/caph-web.service`:
-
-```ini
-[Unit]
-Description=CAPH web
-After=network.target caph-pocketbase.service
-
-[Service]
-WorkingDirectory=/opt/caph/web
-ExecStart=/usr/bin/npm run start -- -p 3000
-Restart=always
-Environment=NODE_ENV=production
-User=www-data
-
-[Install]
-WantedBy=multi-user.target
-```
-
-```bash
-sudo systemctl enable --now caph-pocketbase caph-web
-```
-
-### 3. nginx + HTTPS
-
-```nginx
-server {
-  server_name caphsf.ar www.caphsf.ar;
-  location / { proxy_pass http://127.0.0.1:3000; proxy_set_header Host $host; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto $scheme; }
-}
-server {
-  server_name api.caphsf.ar;
-  client_max_body_size 20M;   # PDFs y fotos
-  location / { proxy_pass http://127.0.0.1:8090; proxy_set_header Host $host; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto $scheme; }
-}
-```
-
-```bash
-sudo certbot --nginx -d caphsf.ar -d www.caphsf.ar -d api.caphsf.ar
-```
-
-### 4. Copias de seguridad
-
-Todo el contenido (datos, PDFs, fotos y logos) vive en `/opt/caph/pocketbase/pb_data`. En el dashboard de PocketBase → **Settings → Backups** se pueden programar copias automáticas; conviene además copiar esa carpeta fuera del servidor.
+Recomendado además: contraseña larga y única para el superusuario (solo para mantenimiento) y para cada usuario del panel, y quitar el usuario del panel de quien deje de trabajar en la Cámara.
 
 ## Despliegue automático (push → VPS)
 
@@ -179,9 +116,10 @@ Puesta en marcha (una sola vez):
    ```
 2. En el VPS, con el usuario de despliegue (no root), instalar todo (pide la contraseña de sudo):
    ```bash
-   curl -fsSL https://raw.githubusercontent.com/FernandoMateo/caph/main/deploy/setup-vps.sh -o /tmp/setup-vps.sh && sudo bash /tmp/setup-vps.sh
+   curl -fsSL https://raw.githubusercontent.com/FernandoMateo/caph/main/deploy/setup-vps.sh -o /tmp/setup-vps.sh && sudo DOMINIO=caphsf.ar bash /tmp/setup-vps.sh
    ```
-   Deja la web en el puerto 3000 y PocketBase en el 8091, sin nginx: en el VPS actual los dominios y el HTTPS los pone el proxy del proveedor, que se configura en su panel (dominio → puerto). También programa el cron de actualización. Al terminar indica los pasos que faltan.
+   Antes, el DNS del dominio (y `www`) tiene que apuntar a la IP del VPS: Caddy saca solo el certificado HTTPS. Instala Caddy, la web (127.0.0.1:3000), PocketBase (127.0.0.1:8091), firewall, fail2ban, actualizaciones automáticas y el cron de despliegue (ver **Seguridad**). Al terminar indica los pasos que faltan.
+3. Pasar los datos del VPS anterior: con los dos PocketBase detenidos, copiar la carpeta `pb_data` entera (datos, fotos, PDFs y comprobantes) a `/opt/caph/pocketbase/pb_data` del nuevo, y arrancar.
 
 Para volver a una versión anterior: `git revert` del commit problemático y `git push`.
 

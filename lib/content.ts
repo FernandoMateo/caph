@@ -100,6 +100,11 @@ async function list(collection: string, query = ""): Promise<PBRecord[]> {
 }
 
 const str = (v: unknown) => (typeof v === "string" ? v : "");
+// solo enlaces http(s): un "javascript:" cargado por un usuario no llega a un href
+const enlace = (v: unknown) => {
+  const s = str(v).trim();
+  return /^https?:\/\//i.test(s) ? s : "";
+};
 // "$ 70.000" y "50 %" no se cortan en dos líneas
 const nb = (s: string) => s.replace(/\$ (?=\d)/g, "$\u00a0").replace(/(\d) %/g, "$1\u00a0%");
 const num = (v: unknown) => (typeof v === "number" ? v : Number(v) || 0);
@@ -217,7 +222,7 @@ export async function getProveedores(): Promise<Proveedor[]> {
       r: str(p.rubro) || "otros",
       v: Boolean(p.verificado),
       tel: str(p.telefono) || undefined,
-      web: str(p.web) || undefined,
+      web: enlace(p.web) || undefined,
       logo: fileUrl(p, "logo", "160x160f") || undefined,
       d: str(p.descripcion) || undefined,
     }));
@@ -240,7 +245,7 @@ export async function getProfesionales(): Promise<Profesional[]> {
       direccion: str(p.direccion),
       telefono: str(p.telefono),
       email: str(p.email),
-      web: str(p.web),
+      web: enlace(p.web),
       descripcion: str(p.descripcion),
       desde: num(p.desde),
       foto: fileUrl(p, "foto", "400x400f"),
@@ -333,7 +338,7 @@ export async function getCarnetPublico(id: string): Promise<CarnetPublico | null
       localidad: str(r.localidad),
       telefono: str(r.telefono),
       email: str(r.email),
-      web: str(r.web),
+      web: enlace(r.web),
     };
   }
   return null;

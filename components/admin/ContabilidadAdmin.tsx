@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { coincide } from "../../lib/buscar";
-import { errorMessage, fileUrl, pb } from "../../lib/pb-client";
+import { abrirProtegido, errorMessage, pb } from "../../lib/pb-client";
 import { Icon } from "../Icon";
 import {
   MEDIOS,
@@ -279,10 +279,17 @@ function RevisarPago({ pago, onChange }: { pago: Pago; onChange: () => void }) {
 }
 
 function ComprobanteLink({ pago }: { pago: Pago }) {
+  const toast = useToast();
   return pago.comprobante ? (
-    <a className="row-link" href={fileUrl(pago, pago.comprobante)} target="_blank" rel="noopener noreferrer" aria-label="Ver comprobante" title="Ver comprobante">
+    <button
+      type="button"
+      className="row-link"
+      onClick={() => abrirProtegido(pago, pago.comprobante!).catch((err) => toast("error", errorMessage(err)))}
+      aria-label="Ver comprobante"
+      title="Ver comprobante"
+    >
       <Icon name="download" size={16} />
-    </a>
+    </button>
   ) : (
     <span />
   );

@@ -339,7 +339,7 @@ export function ProveedoresAdmin() {
                     <button type="button" className="link-btn" onClick={() => setEditing(p)}>
                       {p.nombre}
                     </button>
-                    {p.web && (
+                    {/^https?:\/\//i.test(p.web) && (
                       <a href={p.web} target="_blank" rel="noopener noreferrer" className="row-link" aria-label={`Sitio de ${p.nombre}`}>
                         <Icon name="link" size={14} />
                       </a>

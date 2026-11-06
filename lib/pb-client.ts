@@ -30,3 +30,22 @@ export function errorMessage(err: unknown): string {
 export function fileUrl(record: { id: string; collectionId: string }, filename: string) {
   return filename ? pb().files.getURL(record, filename) : "";
 }
+
+/**
+ * Abre en otra pestaña un archivo protegido (comprobantes): PocketBase lo sirve solo con un token de unos minutos.
+ * La pestaña se abre antes de pedir el token para que el navegador no la bloquee como ventana emergente.
+ */
+export async function abrirProtegido(record: { id: string; collectionId: string }, filename: string) {
+  const ventana = window.open("", "_blank");
+  try {
+    const token = await pb().files.getToken();
+    const url = pb().files.getURL(record, filename, { token });
+    if (ventana) {
+      ventana.opener = null;
+      ventana.location.href = url;
+    } else window.location.href = url;
+  } catch (err) {
+    ventana?.close();
+    throw err;
+  }
+}

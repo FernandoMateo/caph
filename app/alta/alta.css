@@ -140,6 +140,12 @@
   outline-offset: 2px;
 }
 
+.alta__turnstile {
+  display: flex;
+  justify-content: center;
+  min-height: 65px;
+}
+
 .alta__check {
   display: flex;
   gap: 0.75rem;

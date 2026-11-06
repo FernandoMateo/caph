@@ -6,6 +6,7 @@ import { ROLES, errorAlta, portal, type Rol } from "../../lib/portal-client";
 import { Icon } from "../Icon";
 import { LogoMark } from "../Logo";
 import { Campo, CamposFicha, FICHA, datosFicha, digitos, emailOk, validarFicha, type Ficha } from "./CamposFicha";
+import { TURNSTILE_SITE_KEY, Turnstile } from "./Turnstile";
 
 type Cuenta = { name: string; email: string; password: string; telefono: string; documento: string };
 
@@ -33,6 +34,10 @@ export function Alta({ rolInicial }: { rolInicial: Rol | null }) {
   const [enviado, setEnviado] = useState(false);
   // sesión que quedó abierta si la ficha falló después de crear la cuenta: se completa sin crear otra
   const [sesion, setSesion] = useState<{ name: string; rol: Rol; telefono: string; email: string } | null>(null);
+  // anti-robots: campo trampa invisible y desafío de Turnstile (si está configurado)
+  const [trampa, setTrampa] = useState("");
+  const [captcha, setCaptcha] = useState("");
+  const [intentos, setIntentos] = useState(0);
 
   useEffect(() => {
     const c = portal();
@@ -104,6 +109,7 @@ export function Alta({ rolInicial }: { rolInicial: Rol | null }) {
           (!sesion && validarCuenta(cuenta)) ||
           (yaFiguro ? (referencia.trim() ? null : "Contanos con qué nombre o N.º figurás en la web.") : validarFicha(rol, ficha, !!foto));
         if (falta) return setError(falta);
+        if (!sesion && TURNSTILE_SITE_KEY && !captcha) return setError("Confirmá que no sos un robot.");
         setError("");
         setBusy(true);
         const c = portal();
@@ -117,6 +123,8 @@ export function Alta({ rolInicial }: { rolInicial: Rol | null }) {
               passwordConfirm: cuenta.password,
               rol,
               referencia: yaFiguro ? referencia.trim() : "",
+              sitio: trampa,
+              turnstile: captcha,
             });
             const auth = await c.collection("cuentas").authWithPassword(cuenta.email.trim(), cuenta.password);
             s = auth.record as unknown as NonNullable<typeof sesion>;
@@ -137,6 +145,7 @@ export function Alta({ rolInicial }: { rolInicial: Rol | null }) {
           setEnviado(true);
         } catch (err) {
           setError(errorAlta(err, errorMessage));
+          setIntentos((n) => n + 1);
         } finally {
           setBusy(false);
         }
@@ -217,6 +226,18 @@ export function Alta({ rolInicial }: { rolInicial: Rol | null }) {
           </p>
           <CamposFicha rol={rol} ficha={ficha} onChange={setF} foto={foto} onFoto={setFoto} />
         </fieldset>
+      )}
+
+      {!sesion && (
+        <>
+          <div className="sr-only" aria-hidden="true">
+            <label>
+              No completar
+              <input tabIndex={-1} autoComplete="off" value={trampa} onChange={(e) => setTrampa(e.target.value)} />
+            </label>
+          </div>
+          <Turnstile onToken={setCaptcha} reiniciar={intentos} />
+        </>
       )}
 
       {error && (

@@ -14,6 +14,16 @@ main() {
   npm ci --no-audit --no-fund
   npm run build
 
+  # Antes de que entren migraciones nuevas: copia de la base (sqlite3 la copia bien aunque esté en uso)
+  local db="$BASE/pocketbase/pb_data/data.db"
+  if [ -f "$db" ] && command -v sqlite3 >/dev/null && ! diff -rq pocketbase/pb_migrations "$BASE/pocketbase/pb_migrations" >/dev/null 2>&1; then
+    mkdir -p "$BASE/backups"
+    sqlite3 "$db" ".backup '$BASE/backups/data-$(date +%Y%m%d-%H%M%S).db'"
+    chmod 600 "$BASE"/backups/*.db
+    # se guardan las últimas 10
+    ls -1t "$BASE"/backups/data-*.db | tail -n +11 | xargs -r rm --
+  fi
+
   # Migraciones y hooks de PocketBase: se aplican al reiniciar el servicio
   local pb_cambio=0
   for dir in pb_migrations pb_hooks; do

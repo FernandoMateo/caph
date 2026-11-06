@@ -57,6 +57,22 @@ function faltantes(record, coleccion) {
   return falta;
 }
 
+/** La web tiene que ser un enlace http(s): sin esquema se le agrega https://, cualquier otro ("javascript:") se rechaza. */
+function normalizarWeb(record) {
+  let web = record.getString("web").trim();
+  if (web && !/^[a-z][a-z0-9+.-]*:/i.test(web)) web = "https://" + web;
+  if (web && !/^https?:\/\/[^\s]+$/i.test(web)) throw new BadRequestError("La web tiene que ser un enlace que empiece con https://.");
+  record.set("web", web);
+}
+
+/** Un SVG puede llevar código: desde el portal el logo va en PNG, JPG o WEBP (el panel sí puede subir SVG). */
+function sinSvg(record, coleccion) {
+  if (coleccion !== "proveedores") return;
+  for (const f of record.getUnsavedFiles("logo")) {
+    if (/\.svg$/i.test(String(f.originalName || f.name || ""))) throw new BadRequestError("Subí el logo en PNG, JPG o WEBP.");
+  }
+}
+
 function exigirCompleta(record, coleccion) {
   const falta = faltantes(record, coleccion);
   if (falta.length) throw new BadRequestError("Faltan datos obligatorios: " + falta.join(", ") + ".");
@@ -75,6 +91,32 @@ function restaurar(record, coleccion) {
 
 /* ---------- cuentas ---------- */
 
+/**
+ * Altas desde la web: "sitio" es un campo trampa que la persona no ve (si viene completo, lo llenó un robot).
+ * Si el servidor tiene TURNSTILE_SECRET, además exige el desafío de Cloudflare Turnstile resuelto.
+ */
+function antiRobots(e) {
+  const body = e.requestInfo().body || {};
+  if (String(body.sitio || "") !== "") throw new BadRequestError("No pudimos procesar la solicitud.");
+  const secreto = $os.getenv("TURNSTILE_SECRET");
+  if (!secreto) return;
+  let ok = false;
+  try {
+    const res = $http.send({
+      url: "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body:
+        "secret=" + encodeURIComponent(secreto) +
+        "&response=" + encodeURIComponent(String(body.turnstile || "")) +
+        "&remoteip=" + encodeURIComponent(e.realIP()),
+      timeout: 10,
+    });
+    ok = res.statusCode === 200 && !!res.json && res.json.success === true;
+  } catch (_) {}
+  if (!ok) throw new BadRequestError("Confirmá que no sos un robot y volvé a enviar.");
+}
+
 function crearCuenta(e) {
   if (esPanel(e)) {
     if (!e.record.getString("estado")) e.record.set("estado", "activa");
@@ -82,6 +124,7 @@ function crearCuenta(e) {
   }
   e.record.set("estado", "pendiente");
   e.record.set("motivo", "");
+  antiRobots(e);
   if (e.record.getString("name").trim().length < 3) throw new BadRequestError("Completá tu nombre y apellido.");
   if (digitos(e.record.getString("telefono")) < 8) throw new BadRequestError("Completá un teléfono con código de área.");
   const doc = digitos(e.record.getString("documento"));
@@ -96,7 +139,9 @@ function actualizarCuenta(e) {
 
 function crearFicha(e, coleccion) {
   const r = e.record;
+  normalizarWeb(r);
   if (esCuenta(e)) {
+    sinSvg(r, coleccion);
     const estadoCuenta = e.auth.getString("estado");
     if (estadoCuenta === "suspendida" || estadoCuenta === "baja") throw new ForbiddenError("Tu cuenta no está habilitada.");
     const rol = e.auth.getString("rol");
@@ -125,7 +170,9 @@ function crearFicha(e, coleccion) {
 function actualizarFicha(e, coleccion) {
   const r = e.record;
   const antes = r.original().getString("estado");
+  normalizarWeb(r);
   if (esCuenta(e)) {
+    sinSvg(r, coleccion);
     restaurar(r, coleccion);
     if (antes === "aprobado") {
       r.set("revisar", true);
