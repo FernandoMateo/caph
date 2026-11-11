@@ -8,18 +8,35 @@ import { Icon } from "../Icon";
 import { LogoMark } from "../Logo";
 import { ToastProvider } from "./ui";
 
-const NAV = [
-  ["/admin/altas", "Altas"],
-  ["/admin/honorarios", "Honorarios"],
-  ["/admin/proveedores", "Proveedores"],
-  ["/admin/profesionales", "Asociados y profesionales"],
-  ["/admin/contabilidad", "Contabilidad"],
-  ["/admin/capacitaciones", "Capacitaciones"],
-  ["/admin/cursos", "Cursos online"],
-  ["/admin/galeria", "Galería"],
-  ["/admin/textos", "Textos y rubros"],
-  ["/admin/datos", "Importar y exportar"],
+// secciones del menú, agrupadas: [ruta, nombre, ícono]
+const GRUPOS: { titulo: string; items: [string, string, string][] }[] = [
+  {
+    titulo: "Socios",
+    items: [
+      ["/admin/altas", "Altas", "inbox"],
+      ["/admin/profesionales", "Asociados y profesionales", "users"],
+      ["/admin/proveedores", "Proveedores", "store"],
+      ["/admin/contabilidad", "Contabilidad", "chart"],
+    ],
+  },
+  {
+    titulo: "Formación",
+    items: [
+      ["/admin/capacitaciones", "Capacitaciones", "cap"],
+      ["/admin/cursos", "Cursos online", "play"],
+    ],
+  },
+  {
+    titulo: "Web",
+    items: [
+      ["/admin/honorarios", "Honorarios", "scale"],
+      ["/admin/galeria", "Galería", "image"],
+      ["/admin/textos", "Textos y rubros", "text"],
+      ["/admin/datos", "Importar y exportar", "swap"],
+    ],
+  },
 ];
+const NAV = GRUPOS.flatMap((g) => g.items);
 
 function Login() {
   const emailId = useId();
@@ -136,19 +153,30 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </button>
           <div className="admin__panel" id="admin-menu" data-open={menu || undefined}>
             <nav aria-label="Secciones del panel">
-              {NAV.map(([href, label]) => (
-                <Link key={href} href={href} aria-current={pathname?.startsWith(href) ? "page" : undefined}>
-                  {label}
-                </Link>
+              {GRUPOS.map((g) => (
+                <div key={g.titulo} className="admin__group">
+                  <span className="admin__group-title">{g.titulo}</span>
+                  {g.items.map(([href, label, icon]) => (
+                    <Link key={href} href={href} aria-current={pathname?.startsWith(href) ? "page" : undefined}>
+                      <Icon name={icon} size={18} />
+                      <span>{label}</span>
+                    </Link>
+                  ))}
+                </div>
               ))}
             </nav>
             <div className="admin__user">
-              <a href="/" target="_blank" rel="noopener noreferrer" className="admin__view">
-                Ver la web <Icon name="link" size={16} />
-              </a>
-              <span className="admin__email">{user.name || user.email}</span>
-              <button type="button" className="admin__logout" onClick={() => pb().authStore.clear()}>
-                Cerrar sesión
+              <span className="admin__avatar" aria-hidden="true">
+                {(user.name || user.email).slice(0, 1).toUpperCase()}
+              </span>
+              <span className="admin__who">
+                <span className="admin__email">{user.name || user.email}</span>
+                <a href="/" target="_blank" rel="noopener noreferrer" className="admin__view">
+                  Ver la web <Icon name="link" size={14} />
+                </a>
+              </span>
+              <button type="button" className="admin__logout" onClick={() => pb().authStore.clear()} title="Cerrar sesión" aria-label="Cerrar sesión">
+                <Icon name="logout" size={18} />
               </button>
             </div>
           </div>

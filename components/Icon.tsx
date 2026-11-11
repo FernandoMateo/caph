@@ -59,6 +59,40 @@ const PATHS: Record<string, React.ReactNode> = {
       <path d="M4 10h16M8.5 3v4M15.5 3v4" />
     </>
   ),
+  // menú del panel
+  inbox: <path d="M4 13.5l2.2-7.1A2 2 0 0 1 8.1 5h7.8a2 2 0 0 1 1.9 1.4l2.2 7.1V18a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zM4 13.5h4.5l1.2 2h4.6l1.2-2H20" />,
+  scale: <path d="M12 4v16M7 20h10M5 7h14M5 7l-2.5 6a2.5 2.5 0 0 0 5 0zM19 7l-2.5 6a2.5 2.5 0 0 0 5 0z" />,
+  store: <path d="M4 9.5V19a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9.5M3 9.5l1.6-4.8A1 1 0 0 1 5.5 4h13a1 1 0 0 1 .9.7L21 9.5zM3 9.5a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0M10 20v-5h4v5" />,
+  users: (
+    <>
+      <circle cx="9" cy="8.5" r="3.5" />
+      <path d="M2.5 19.5a6.5 6.5 0 0 1 13 0M16 5.2a3.5 3.5 0 0 1 0 6.6M18 14.2a6.5 6.5 0 0 1 3.5 5.3" />
+    </>
+  ),
+  chart: <path d="M4 4v16h16M8 16v-4M12 16V8M16 16v-6" />,
+  cap: <path d="M2.5 9.5L12 5l9.5 4.5L12 14zM6.5 11.5v4.2c0 1.5 2.5 2.8 5.5 2.8s5.5-1.3 5.5-2.8v-4.2M21.5 9.5v5" />,
+  play: (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="2.5" />
+      <path d="M10.5 9.5v5l4-2.5z" />
+    </>
+  ),
+  image: (
+    <>
+      <rect x="3.5" y="4.5" width="17" height="15" rx="2.5" />
+      <circle cx="9" cy="10" r="1.6" />
+      <path d="M20.5 16l-4.5-4.5-8.5 8" />
+    </>
+  ),
+  text: <path d="M5 6h14M5 10.5h14M5 15h9M5 19.5h6" />,
+  swap: <path d="M7 4L4 7l3 3M4 7h12a4 4 0 0 1 4 4M17 20l3-3-3-3M20 17H8a4 4 0 0 1-4-4" />,
+  logout: <path d="M14 4.5h3.5a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H14M10 8l-4 4 4 4M6 12h10" />,
+  table: (
+    <>
+      <rect x="3.5" y="4.5" width="17" height="15" rx="2" />
+      <path d="M3.5 9.5h17M3.5 14.5h17M10 9.5v10" />
+    </>
+  ),
 };
 
 export function Icon({ name, size = 20, className }: { name: keyof typeof PATHS | string; size?: number; className?: string }) {

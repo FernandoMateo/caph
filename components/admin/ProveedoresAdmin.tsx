@@ -325,7 +325,6 @@ export function ProveedoresAdmin() {
             <thead>
               <tr>
                 <th scope="col">Proveedor</th>
-                <th scope="col">Rubro</th>
                 <th scope="col">Teléfono</th>
                 <th scope="col">Portal</th>
                 <th scope="col">Verificado</th>
@@ -343,16 +342,18 @@ export function ProveedoresAdmin() {
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       {p.logo ? <img src={pb().files.getURL(p, p.logo, { thumb: "160x160f" })} alt="" loading="lazy" /> : p.nombre.slice(0, 2).toUpperCase()}
                     </span>
-                    <button type="button" className="link-btn" onClick={() => setEditing(p)}>
-                      {p.nombre}
-                    </button>
+                    <span className="row-text">
+                      <button type="button" className="link-btn" onClick={() => setEditing(p)} title={p.nombre}>
+                        {p.nombre}
+                      </button>
+                      <small>{RUBROS[p.rubro] ?? p.rubro}</small>
+                    </span>
                     {/^https?:\/\//i.test(p.web) && (
-                      <a href={p.web} target="_blank" rel="noopener noreferrer" className="row-link" aria-label={`Sitio de ${p.nombre}`}>
+                      <a href={p.web} target="_blank" rel="noopener noreferrer" className="row-link" aria-label={`Sitio de ${p.nombre}`} title={p.web}>
                         <Icon name="link" size={14} />
                       </a>
                     )}
                   </th>
-                  <td data-label="Rubro">{RUBROS[p.rubro] ?? p.rubro}</td>
                   <td data-label="Teléfono" className="num-cell">
                     {p.telefono || "—"}
                   </td>
@@ -394,8 +395,8 @@ export function ProveedoresAdmin() {
                     />
                   </td>
                   <td className="actions-cell">
-                    <button type="button" className="btn btn--ghost-dark btn--sm" onClick={() => setEditing(p)}>
-                      Editar
+                    <button type="button" className="icon-btn" onClick={() => setEditing(p)} aria-label={`Editar ${p.nombre}`} title="Editar">
+                      <Icon name="pencil" size={18} />
                     </button>
                     <button
                       type="button"

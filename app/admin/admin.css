@@ -790,7 +790,7 @@ button.row-link {
   background: var(--surface-2);
   color: var(--navy);
 }
-@media (min-width: 900px) {
+@media (min-width: 1100px) {
   .data-table {
     display: table;
   }
@@ -1705,7 +1705,8 @@ button.row-link {
 }
 .admin .card + .field__hint {
   margin-bottom: 0.75rem;
-}.toolbar .cursos-select {
+}
+.toolbar .cursos-select {
   flex: 1 1 auto;
   width: min(100%, 44rem);
   max-width: 100%;
@@ -1761,4 +1762,764 @@ button.row-link {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+}
+/* =====================================================================
+   Panel moderno: capa visual sobre lo anterior (tokens propios del panel,
+   tarjetas con borde fino y sombra suave, menú con íconos, listados sin
+   saltos de línea). Va al final para ganar por orden sin subir especificidad.
+   ===================================================================== */
+
+.admin {
+  --a-bg: #f4f6fb;
+  --a-card: #ffffff;
+  --a-border: #e3e7ef;
+  --a-border-strong: #d0d6e2;
+  --a-hover: #f7f9fc;
+  --a-shadow: 0 1px 2px rgba(16, 24, 64, 0.04), 0 6px 18px -10px rgba(16, 24, 64, 0.12);
+  --a-radius: 16px;
+  --a-radius-sm: 10px;
+  background: var(--a-bg);
+}
+body:has(.admin) {
+  background: #f4f6fb;
+}
+
+/* ---------- botones y campos: más compactos, esquinas de 10px ---------- */
+
+.admin .btn {
+  min-height: 40px;
+  padding: 0 1rem;
+  border-radius: var(--a-radius-sm);
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+.admin .btn--sm {
+  min-height: 34px;
+  padding: 0 0.8rem;
+  font-size: 0.8125rem;
+}
+.admin .btn--ghost-dark {
+  background: var(--a-card);
+  box-shadow: inset 0 0 0 1px var(--a-border-strong);
+}
+.admin .btn--ghost-dark:hover {
+  background: var(--a-hover);
+}
+.admin :where(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), select, textarea) {
+  min-height: 40px;
+  border-color: var(--a-border-strong);
+  border-radius: var(--a-radius-sm);
+}
+.admin .search input,
+.admin .toolbar select {
+  border-radius: var(--a-radius-sm) !important;
+}
+.admin .icon-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+}
+
+/* ---------- menú lateral ---------- */
+
+.admin__side {
+  background: linear-gradient(180deg, #0c1645 0%, #091135 60%, #070e2c 100%);
+}
+.admin__side nav {
+  display: grid;
+  gap: 0.9rem;
+}
+.admin__group {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px;
+}
+.admin__group-title {
+  grid-column: 1 / -1;
+  padding: 0 10px 4px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(195, 217, 226, 0.55);
+}
+.admin__side nav a {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--a-radius-sm);
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+.admin__side nav a span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.admin__side nav a svg {
+  flex: none;
+  opacity: 0.7;
+}
+.admin__side nav a:hover svg,
+.admin__side nav a[aria-current="page"] svg {
+  opacity: 1;
+}
+.admin__side nav a[aria-current="page"] {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--white);
+  box-shadow: inset 3px 0 0 var(--c-blue);
+}
+.admin__user {
+  flex-wrap: nowrap;
+  gap: 0.65rem;
+}
+.admin__avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--c-blue), var(--c-teal));
+  color: var(--white);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.admin__who {
+  flex: 1;
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+.admin__email {
+  font-size: 0.8125rem;
+  color: var(--white);
+}
+.admin__view {
+  font-size: 0.75rem;
+}
+.admin__logout {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  min-height: 36px;
+  padding: 0;
+  border-radius: var(--a-radius-sm);
+}
+@media (min-width: 960px) {
+  .admin {
+    grid-template-columns: 252px minmax(0, 1fr);
+  }
+  .admin__side {
+    gap: 1.5rem;
+    padding: 22px 14px 16px;
+  }
+  .admin__side nav {
+    display: grid;
+    gap: 1.25rem;
+    overflow-y: auto;
+  }
+  .admin__group {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .admin__user {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.9rem 6px 0;
+  }
+  .admin__email {
+    flex: none;
+  }
+  .admin__logout {
+    align-self: center;
+  }
+  .admin__main {
+    max-width: 1280px;
+    padding: 36px 40px 96px;
+  }
+}
+
+/* ---------- encabezados y secciones ---------- */
+
+.page-head {
+  margin-bottom: 1.5rem;
+}
+.page-head h1 {
+  font-size: clamp(1.5rem, 1.25rem + 0.8vw, 1.875rem);
+  letter-spacing: -0.03em;
+}
+.page-head p {
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+.admin-section {
+  margin-top: 2rem;
+}
+.admin-section h2 {
+  font-size: 1.0625rem;
+}
+.section-hint {
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+/* ---------- superficies: una sola receta de tarjeta ---------- */
+
+.admin :is(.card, .table-wrap, .empty, .cap-item, .ledger, .rows__row, .stat, .viz-card) {
+  border-radius: var(--a-radius);
+  background: var(--a-card);
+  box-shadow:
+    inset 0 0 0 1px var(--a-border),
+    var(--a-shadow);
+}
+@media (min-width: 1100px) {
+  .admin .rows {
+    border-radius: var(--a-radius);
+    box-shadow:
+      inset 0 0 0 1px var(--a-border),
+      var(--a-shadow);
+  }
+  .admin .rows__row {
+    box-shadow: none;
+    border-radius: 0;
+  }
+}
+
+/* ---------- etiquetas de estado: nunca en dos renglones ---------- */
+
+.pill {
+  gap: 0.3rem;
+  padding: 0.2rem 0.6rem;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+
+/* ---------- barra de herramientas ---------- */
+
+.toolbar {
+  gap: 8px;
+}
+.toolbar .btn {
+  flex: none;
+}
+.toolbar__count {
+  white-space: nowrap;
+}
+
+/* ---------- listados ---------- */
+
+/* nombres largos: una línea con "…" (el nombre completo sigue al pasar el mouse o al editar) */
+.data-table .link-btn,
+.row-text small {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.row-text {
+  min-width: 0;
+}
+.row-logo {
+  border-radius: 9px;
+}
+
+/* teléfono y tablet: cada fila es una tarjeta con sus datos en columnas (etiqueta arriba, valor abajo) */
+@media (max-width: 1099px) {
+  .admin .table-wrap {
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
+    overflow: visible;
+  }
+  .data-table,
+  .data-table tbody {
+    display: grid;
+    gap: 10px;
+  }
+  .data-table tr {
+    grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+    gap: 0.75rem 1rem;
+    padding: 14px 16px;
+    border: 0;
+    border-radius: 14px;
+    background: var(--a-card);
+    box-shadow:
+      inset 0 0 0 1px var(--a-border),
+      var(--a-shadow);
+  }
+  .data-table tbody tr:first-child {
+    border-top: 0;
+  }
+  .data-table tbody th {
+    min-width: 0;
+    gap: 0.65rem;
+    padding-bottom: 0.65rem;
+    border-bottom: 1px solid var(--a-border);
+  }
+  .data-table td[data-label] {
+    display: block;
+    grid-column: auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.875rem;
+    color: var(--text);
+  }
+  .data-table td[data-label]::before {
+    display: block;
+    margin-bottom: 0.2rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  /* celdas con etiquetas: las etiquetas pueden ir una debajo de otra, nunca partidas */
+  .data-table td[data-label]:has(.pill) {
+    white-space: normal;
+    overflow: visible;
+  }
+  .data-table td[data-label] .pill {
+    margin: 0 0.25rem 0.25rem 0;
+  }
+  .data-table .mini-switch {
+    display: block;
+    margin-top: 0.15rem;
+  }
+  .actions-cell {
+    padding-top: 0.65rem;
+    border-top: 1px solid var(--a-border);
+  }
+}
+
+/* escritorio: tabla con encabezado fijo en una línea; si no entra, se desliza de costado */
+@media (min-width: 1100px) {
+  .admin .table-wrap {
+    overflow-x: auto;
+  }
+  .data-table th,
+  .data-table td,
+  .data-table td[data-label] {
+    padding: 11px 14px;
+    border-top: 1px solid var(--a-border);
+    white-space: nowrap;
+    font-size: 0.875rem;
+  }
+  .data-table thead th {
+    padding-block: 11px;
+    background: #f8fafc;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--a-border);
+  }
+  .data-table tbody tr {
+    transition: background-color 0.15s var(--ease);
+  }
+  .data-table tbody tr:hover {
+    background: var(--a-hover);
+  }
+  .data-table tbody th {
+    max-width: 22rem;
+  }
+  .data-table tbody th > * {
+    vertical-align: middle;
+  }
+  .data-table tbody th .row-logo {
+    margin-right: 0.6rem;
+  }
+  .data-table tbody th .link-btn,
+  .data-table tbody th .row-text {
+    display: inline-block;
+    max-width: min(18rem, 22vw);
+  }
+  .data-table tbody th .row-text .link-btn {
+    display: block;
+    max-width: 100%;
+  }
+  .data-table td[data-label] {
+    color: var(--text-2);
+  }
+}
+
+/* ---------- tarjetas de números (contabilidad) ---------- */
+
+.stats {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+@media (min-width: 900px) {
+  .stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+.stat {
+  position: relative;
+  gap: 0.3rem;
+  min-width: 0;
+  padding: 18px 20px;
+}
+.stat span {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+.stat strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: clamp(1.375rem, 1.1rem + 0.7vw, 1.75rem);
+  font-variant-numeric: normal;
+}
+.stat small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.stat--hero {
+  padding-right: 120px;
+}
+.stat__trend {
+  position: absolute;
+  right: 16px;
+  bottom: 18px;
+}
+.admin .stat[data-tone="warn"] {
+  background: var(--a-card);
+  box-shadow:
+    inset 3px 0 0 #fab219,
+    inset 0 0 0 1px var(--a-border),
+    var(--a-shadow);
+}
+.admin .stat[data-tone="off"] {
+  background: var(--a-card);
+  box-shadow:
+    inset 3px 0 0 #d03b3b,
+    inset 0 0 0 1px var(--a-border),
+    var(--a-shadow);
+}
+.stat[data-tone="off"] strong {
+  color: #b42318;
+}
+
+/* ---------- gráficos ---------- */
+
+.viz-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  margin-bottom: 2rem;
+}
+@media (min-width: 1100px) {
+  .viz-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .viz-card[data-ancha] {
+    grid-column: 1 / -1;
+  }
+}
+.viz-card {
+  display: grid;
+  align-content: start;
+  gap: 0.9rem;
+  min-width: 0;
+  padding: 18px 20px 16px;
+}
+.viz-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.viz-card__head h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--navy);
+}
+.viz-card__head p {
+  margin-top: 0.2rem;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.viz-card__toggle {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 32px;
+  padding: 0 0.7rem;
+  border: 1px solid var(--a-border);
+  border-radius: 8px;
+  background: var(--a-card);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-2);
+  cursor: pointer;
+}
+.viz-card__toggle:hover,
+.viz-card__toggle[aria-pressed="true"] {
+  background: var(--a-hover);
+  color: var(--navy);
+}
+.viz-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.1rem;
+  font-size: 0.8125rem;
+  color: var(--text-2);
+}
+.viz-leyenda li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+.viz-leyenda__swatch {
+  flex: none;
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+.viz-plot {
+  position: relative;
+  min-width: 0;
+}
+.viz-plot svg {
+  display: block;
+  overflow: visible;
+}
+.viz-plot rect[tabindex]:focus {
+  outline: none;
+}
+.viz-plot rect[tabindex]:focus-visible {
+  outline: 2px solid var(--navy);
+  outline-offset: -2px;
+}
+.viz-eje {
+  font-size: 11px;
+  fill: #6f7896;
+  font-variant-numeric: tabular-nums;
+}
+.viz-valor {
+  font-size: 12px;
+  font-weight: 600;
+  fill: #171717;
+}
+.viz-cat {
+  font-size: 13px;
+  fill: #4a5272;
+}
+.viz-tip {
+  position: absolute;
+  z-index: 2;
+  transform: translateX(-50%);
+  display: grid;
+  gap: 0.3rem;
+  min-width: 180px;
+  padding: 0.65rem 0.8rem;
+  border-radius: var(--a-radius-sm);
+  background: #0b1440;
+  color: var(--white);
+  font-size: 0.75rem;
+  box-shadow: 0 14px 30px -12px rgba(9, 17, 53, 0.5);
+  pointer-events: none;
+}
+.viz-tip strong {
+  font-size: 0.8125rem;
+}
+.viz-tip span {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  white-space: nowrap;
+}
+.viz-tip i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+.viz-tip b {
+  margin-left: auto;
+  padding-left: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+.viz-tip small {
+  color: var(--on-navy);
+}
+.viz-segmentos {
+  position: relative;
+  height: 10px;
+}
+.viz-segmento {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  border-radius: 999px;
+}
+.viz-detalle {
+  display: grid;
+}
+.viz-detalle li {
+  display: grid;
+  grid-template-columns: 10px 16px minmax(0, 1fr) auto 3.25rem;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0;
+  border-top: 1px solid #eef1f6;
+  font-size: 0.875rem;
+  color: var(--text-2);
+}
+.viz-detalle li:first-child {
+  border-top: 0;
+}
+.viz-detalle li > span:nth-of-type(2) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.viz-detalle__icono {
+  color: var(--muted);
+}
+.viz-detalle b {
+  color: var(--navy);
+  font-variant-numeric: tabular-nums;
+}
+.viz-detalle small {
+  text-align: right;
+  font-size: 0.8125rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.viz-vacio {
+  padding: 1.5rem 0;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+.viz-tabla {
+  overflow-x: auto;
+}
+.viz-tabla table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+.viz-tabla th,
+.viz-tabla td {
+  padding: 0.5rem 0.6rem;
+  border-top: 1px solid #eef1f6;
+  text-align: right;
+  white-space: nowrap;
+}
+.viz-tabla th:first-child {
+  text-align: left;
+  font-weight: 500;
+  color: var(--text);
+}
+.viz-tabla thead th {
+  border-top: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* ---------- panel lateral de edición y diálogos ---------- */
+
+@media (min-width: 720px) {
+  .drawer {
+    border-radius: 18px 0 0 18px;
+  }
+}
+.drawer__head {
+  padding: 14px 14px 14px 22px;
+  border-bottom-color: var(--a-border);
+}
+.drawer__head h2 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 1.0625rem;
+}
+.confirm {
+  border-radius: var(--a-radius);
+}
+.toast {
+  border-radius: 12px;
+}
+
+/* ---------- libro de pagos (contabilidad y cuentas) ---------- */
+
+.ledger li {
+  padding: 12px 10px 12px 16px;
+  border-top-color: var(--a-border);
+}
+.ledger__main strong,
+.ledger small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ledger__amount {
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .data-table tbody tr {
+    transition: none;
+  }
+}
+
+/* ajustes de la capa moderna */
+.admin__side nav {
+  grid-template-columns: minmax(0, 1fr);
+}
+.stat__fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-width: 0;
+}
+.stat__fila strong {
+  min-width: 0;
+}
+.stat__trend {
+  position: static;
+  flex: none;
+}
+.stat span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* teléfono y tablet: acciones arriba a la derecha de cada tarjeta, datos en una fila de columnas */
+@media (max-width: 1099px) {
+  .data-table tr {
+    position: relative;
+    grid-template-columns: repeat(auto-fill, minmax(6rem, 1fr));
+  }
+  .data-table tbody th {
+    padding-right: 76px;
+  }
+  .data-table tr > .actions-cell {
+    position: absolute;
+    top: 10px;
+    right: 8px;
+    padding: 0;
+    border: 0;
+    gap: 0;
+  }
 }

@@ -26,6 +26,7 @@ import {
   type Suscripcion,
   type Tarifa,
 } from "./cuentas";
+import { ResumenContable } from "./GraficosContabilidad";
 import { Drawer, Empty, Field, Loading, PageHead, Toggle, useConfirm, useToast } from "./ui";
 
 type Tipo = Tarifa["rol"];
@@ -754,25 +755,6 @@ export function ContabilidadAdmin() {
     return m;
   }, [data]);
 
-  const resumen = useMemo(() => {
-    if (!data) return null;
-    const h = hoy();
-    const mes = h.slice(0, 7);
-    let deuda = 0;
-    let porCobrar = 0;
-    for (const c of data.cuotas) {
-      const s = saldo(c);
-      if (dia(c.vencimiento) < h) deuda += s;
-      else if (dia(c.vencimiento).slice(0, 7) === mes) porCobrar += s;
-    }
-    return {
-      cobrado: data.pagos.filter((p) => p.estado === "confirmado" && dia(p.fecha).slice(0, 7) === mes).reduce((s, p) => s + p.monto, 0),
-      deuda,
-      porCobrar,
-      mora: data.titulares.filter((p) => p.oculto_mora).length,
-    };
-  }, [data]);
-
   const informados = useMemo(() => (data ? data.pagos.filter((p) => p.estado === "informado") : []), [data]);
 
   const list = useMemo(() => {
@@ -790,7 +772,6 @@ export function ContabilidadAdmin() {
 
   const actual = abierto && data ? data.titulares.find((t) => t.id === abierto) : undefined;
   const nombreDe = (id: string) => data?.titulares.find((t) => t.id === id)?.nombre ?? "—";
-  const mesActual = nombrePeriodo({ tipo: "mensual", periodo: hoy().slice(0, 7) });
 
   return (
     <>
@@ -799,26 +780,7 @@ export function ContabilidadAdmin() {
         text="Cuotas de asociados, proveedores y profesionales. Las cuotas se generan solas cada mes; registrá acá los pagos y confirmá los que informan desde su portal. Quien deba una cuota más de 1 mes y 10 días se oculta de la web y su carnet deja de estar vigente."
       />
 
-      {resumen && (
-        <div className="stats">
-          <div className="stat">
-            <span>Cobrado en {mesActual.toLowerCase()}</span>
-            <strong>{dinero(resumen.cobrado)}</strong>
-          </div>
-          <div className="stat">
-            <span>Por cobrar este mes</span>
-            <strong>{dinero(resumen.porCobrar)}</strong>
-          </div>
-          <div className="stat" data-tone={resumen.deuda > 0 ? "warn" : undefined}>
-            <span>Deuda vencida</span>
-            <strong>{dinero(resumen.deuda)}</strong>
-          </div>
-          <div className="stat" data-tone={resumen.mora > 0 ? "off" : undefined}>
-            <span>Suspendidos por mora</span>
-            <strong>{resumen.mora}</strong>
-          </div>
-        </div>
-      )}
+      {data && <ResumenContable cuotas={data.cuotas} pagos={data.pagos} titulares={data.titulares} cuentas={cuentas} />}
 
       {informados.length > 0 && (
         <section className="admin-section">
@@ -884,10 +846,9 @@ export function ContabilidadAdmin() {
               <thead>
                 <tr>
                   <th scope="col">Nombre</th>
-                  <th scope="col">Tipo</th>
                   <th scope="col">Cuota</th>
-                  <th scope="col">Próximo vencimiento</th>
-                  <th scope="col">Deuda vencida</th>
+                  <th scope="col">Vence</th>
+                  <th scope="col">Deuda</th>
                   <th scope="col">Estado</th>
                   <th scope="col">
                     <span className="sr-only">Acciones</span>
@@ -900,11 +861,13 @@ export function ContabilidadAdmin() {
                   return (
                     <tr key={t.id} data-muted={(!t.activo && c.estado !== "mora") || undefined}>
                       <th scope="row">
-                        <button type="button" className="link-btn" onClick={() => setAbierto(t.id)}>
-                          {t.nombre}
-                        </button>
+                        <span className="row-text">
+                          <button type="button" className="link-btn" onClick={() => setAbierto(t.id)} title={t.nombre}>
+                            {t.nombre}
+                          </button>
+                          <small>{TIPOS[t.tipo]}</small>
+                        </span>
                       </th>
-                      <td data-label="Tipo">{TIPOS[t.tipo]}</td>
                       <td data-label="Cuota" className="num-cell">
                         {c.suscripcion ? dinero(c.suscripcion.cuota_monto) : "—"}
                       </td>
@@ -928,8 +891,14 @@ export function ContabilidadAdmin() {
                         )}
                       </td>
                       <td className="actions-cell">
-                        <button type="button" className="btn btn--ghost-dark btn--sm" onClick={() => setAbierto(t.id)}>
-                          {c.estado === "sin-cuota" && !c.pagos.length ? "Dar de alta cuota" : "Ver cuenta"}
+                        <button
+                          type="button"
+                          className="icon-btn"
+                          onClick={() => setAbierto(t.id)}
+                          aria-label={c.estado === "sin-cuota" && !c.pagos.length ? `Dar de alta la cuota de ${t.nombre}` : `Ver la cuenta de ${t.nombre}`}
+                          title={c.estado === "sin-cuota" && !c.pagos.length ? "Dar de alta cuota" : "Ver cuenta"}
+                        >
+                          <Icon name="arrow" size={18} />
                         </button>
                       </td>
                     </tr>

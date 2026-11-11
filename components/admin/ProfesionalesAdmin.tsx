@@ -352,7 +352,7 @@ export function ProfesionalesAdmin() {
                       {p.foto ? <img src={pb().files.getURL(p, p.foto, { thumb: "400x400f" })} alt="" loading="lazy" /> : iniciales(p.nombre)}
                     </span>
                     <span className="row-text">
-                      <button type="button" className="link-btn" onClick={() => setEditing(p)}>
+                      <button type="button" className="link-btn" onClick={() => setEditing(p)} title={p.nombre}>
                         {p.nombre}
                       </button>
                       <small>
@@ -400,8 +400,8 @@ export function ProfesionalesAdmin() {
                     />
                   </td>
                   <td className="actions-cell">
-                    <button type="button" className="btn btn--ghost-dark btn--sm" onClick={() => setEditing(p)}>
-                      Editar
+                    <button type="button" className="icon-btn" onClick={() => setEditing(p)} aria-label={`Editar ${p.nombre}`} title="Editar">
+                      <Icon name="pencil" size={18} />
                     </button>
                     <button
                       type="button"
