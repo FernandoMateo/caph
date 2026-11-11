@@ -5,6 +5,7 @@ import { coincide } from "../../lib/buscar";
 import { errorMessage, fileUrl, pb } from "../../lib/pb-client";
 import { descargarExcel } from "../../lib/excel";
 import { Icon } from "../Icon";
+import { AccesoPortal, AccesosMasivos } from "./AccesoPortal";
 import { Drawer, Empty, Field, Loading, PageHead, Toggle, useConfirm, useToast } from "./ui";
 
 type Profesional = {
@@ -27,9 +28,12 @@ type Profesional = {
   verificado: boolean;
   activo: boolean;
   estado?: "pendiente" | "aprobado" | "rechazado";
+  // cuenta del portal (acceso), si tiene
+  cuenta?: string;
+  expand?: { cuenta?: { id: string; email: string; estado: string } };
 };
 
-type Datos = Omit<Profesional, "id" | "collectionId" | "foto" | "desde" | "estado"> & { desde: string };
+type Datos = Omit<Profesional, "id" | "collectionId" | "foto" | "desde" | "estado" | "cuenta" | "expand"> & { desde: string };
 
 const ROLES = { asociado: "Asociado (administrador de consorcios)", profesional: "Profesional" } as const;
 
@@ -210,7 +214,7 @@ export function ProfesionalesAdmin() {
 
   const load = useCallback(async () => {
     try {
-      setItems(await pb().collection("profesionales").getFullList<Profesional>({ sort: "nombre" }));
+      setItems(await pb().collection("profesionales").getFullList<Profesional>({ sort: "nombre", expand: "cuenta" }));
     } catch (err) {
       toast("error", errorMessage(err));
       setItems([]);
@@ -244,7 +248,8 @@ export function ProfesionalesAdmin() {
   const upsert = (saved: Profesional) => {
     setItems((xs) => {
       const exists = xs!.some((x) => x.id === saved.id);
-      const next = exists ? xs!.map((x) => (x.id === saved.id ? saved : x)) : [...xs!, saved];
+      // la respuesta de guardar no trae la cuenta expandida: se conserva la que ya estaba
+      const next = exists ? xs!.map((x) => (x.id === saved.id ? { ...saved, expand: x.expand } : x)) : [...xs!, saved];
       return next.sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
     });
     setEditing(null);
@@ -311,6 +316,7 @@ export function ProfesionalesAdmin() {
             <Icon name="download" size={16} /> Exportar
           </button>
         )}
+        <AccesosMasivos coleccion="profesionales" fichas={list} onListo={load} />
       </div>
 
       {!items ? (
@@ -329,6 +335,7 @@ export function ProfesionalesAdmin() {
                 <th scope="col">Profesional</th>
                 <th scope="col">N.º</th>
                 <th scope="col">Teléfono</th>
+                <th scope="col">Portal</th>
                 <th scope="col">Verificado</th>
                 <th scope="col">Visible</th>
                 <th scope="col">
@@ -359,6 +366,13 @@ export function ProfesionalesAdmin() {
                   </td>
                   <td data-label="Teléfono" className="num-cell">
                     {p.telefono || "—"}
+                  </td>
+                  <td data-label="Portal">
+                    <button type="button" className="link-btn" onClick={() => setEditing(p)} title={p.expand?.cuenta?.email ?? "Crear acceso desde Editar"}>
+                      <span className="pill" data-state={p.cuenta ? "next" : "off"}>
+                        {p.cuenta ? "Con acceso" : "Sin acceso"}
+                      </span>
+                    </button>
                   </td>
                   <td data-label="Verificado">
                     <input
@@ -416,6 +430,14 @@ export function ProfesionalesAdmin() {
 
       <Drawer open={!!editing} title={editing?.id ? `Editar ${editing.nombre}` : "Nueva ficha"} onClose={() => setEditing(null)}>
         {editing && <Form key={editing.id ?? "nuevo"} initial={editing} onSaved={upsert} onCancel={() => setEditing(null)} />}
+        {editing?.id && (
+          <AccesoPortal
+            key={`acceso-${editing.id}`}
+            coleccion="profesionales"
+            ficha={editing as Profesional}
+            onCambio={() => load()}
+          />
+        )}
       </Drawer>
       {dialog}
     </>

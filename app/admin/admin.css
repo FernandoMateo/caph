@@ -1710,3 +1710,55 @@ button.row-link {
   width: min(100%, 44rem);
   max-width: 100%;
 }
+/* ---------- acceso al portal (asociados, profesionales y proveedores) ---------- */
+.acceso {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+}
+.acceso__credencial {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.acceso__ok {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.9375rem;
+  color: var(--navy);
+}
+.acceso__ok svg {
+  flex: none;
+  margin-top: 2px;
+  color: #1d6b38;
+}
+.acceso__credencial dl {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.35rem 1rem;
+  margin: 0;
+}
+.acceso__credencial dt {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.acceso__credencial dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+.acceso__clave {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: 0.04em;
+  user-select: all;
+}
+.acceso__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}

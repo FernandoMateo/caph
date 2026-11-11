@@ -9,6 +9,7 @@ import { Icon } from "../Icon";
 import { CamposCuota, cuotaVacia, payloadCuota, validarCuota } from "./ContabilidadAdmin";
 import type { Tarifa } from "./cuentas";
 import { Drawer, Empty, Field, Loading, PageHead, Toggle, useConfirm, useToast } from "./ui";
+import { AccesoPortal, AccesosMasivos } from "./AccesoPortal";
 
 type Proveedor = {
   id: string;
@@ -26,6 +27,9 @@ type Proveedor = {
   oculto_mora?: boolean;
   logo?: string;
   estado?: "pendiente" | "aprobado" | "rechazado";
+  // cuenta del portal (acceso), si tiene
+  cuenta?: string;
+  expand?: { cuenta?: { id: string; email: string; estado: string } };
 };
 
 const BLANK: Omit<Proveedor, "id" | "collectionId"> = {
@@ -211,7 +215,7 @@ export function ProveedoresAdmin() {
 
   const load = useCallback(async () => {
     try {
-      setItems(await pb().collection("proveedores").getFullList<Proveedor>({ sort: "nombre" }));
+      setItems(await pb().collection("proveedores").getFullList<Proveedor>({ sort: "nombre", expand: "cuenta" }));
     } catch (err) {
       toast("error", errorMessage(err));
       setItems([]);
@@ -241,7 +245,8 @@ export function ProveedoresAdmin() {
   const upsert = (saved: Proveedor) => {
     setItems((xs) => {
       const exists = xs!.some((x) => x.id === saved.id);
-      const next = exists ? xs!.map((x) => (x.id === saved.id ? saved : x)) : [...xs!, saved];
+      // la respuesta de guardar no trae la cuenta expandida: se conserva la que ya estaba
+      const next = exists ? xs!.map((x) => (x.id === saved.id ? { ...saved, expand: x.expand } : x)) : [...xs!, saved];
       return next.sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
     });
     setEditing(null);
@@ -303,6 +308,7 @@ export function ProveedoresAdmin() {
             <Icon name="download" size={16} /> Exportar
           </button>
         )}
+        <AccesosMasivos coleccion="proveedores" fichas={list} onListo={load} />
       </div>
 
       {!items ? (
@@ -321,6 +327,7 @@ export function ProveedoresAdmin() {
                 <th scope="col">Proveedor</th>
                 <th scope="col">Rubro</th>
                 <th scope="col">Teléfono</th>
+                <th scope="col">Portal</th>
                 <th scope="col">Verificado</th>
                 <th scope="col">Visible</th>
                 <th scope="col">
@@ -348,6 +355,13 @@ export function ProveedoresAdmin() {
                   <td data-label="Rubro">{RUBROS[p.rubro] ?? p.rubro}</td>
                   <td data-label="Teléfono" className="num-cell">
                     {p.telefono || "—"}
+                  </td>
+                  <td data-label="Portal">
+                    <button type="button" className="link-btn" onClick={() => setEditing(p)} title={p.expand?.cuenta?.email ?? "Crear acceso desde Editar"}>
+                      <span className="pill" data-state={p.cuenta ? "next" : "off"}>
+                        {p.cuenta ? "Con acceso" : "Sin acceso"}
+                      </span>
+                    </button>
                   </td>
                   <td data-label="Verificado">
                     <input
@@ -410,6 +424,14 @@ export function ProveedoresAdmin() {
 
       <Drawer open={!!editing} title={editing?.id ? `Editar ${editing.nombre}` : "Nuevo proveedor"} onClose={() => setEditing(null)}>
         {editing && <Form key={editing.id ?? "nuevo"} initial={editing} onSaved={upsert} onCancel={() => setEditing(null)} />}
+        {editing?.id && (
+          <AccesoPortal
+            key={`acceso-${editing.id}`}
+            coleccion="proveedores"
+            ficha={editing as Proveedor}
+            onCambio={() => load()}
+          />
+        )}
       </Drawer>
       {dialog}
     </>
