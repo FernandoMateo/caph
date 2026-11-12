@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useId, useState } from "react";
 import { errorMessage, pb } from "../../lib/pb-client";
+import { inicio, puede, type UsuarioPanel } from "../../lib/permisos";
 import { Icon } from "../Icon";
 import { LogoMark } from "../Logo";
 import { ToastProvider } from "./ui";
@@ -34,6 +35,10 @@ const GRUPOS: { titulo: string; items: [string, string, string][] }[] = [
       ["/admin/textos", "Textos y rubros", "text"],
       ["/admin/datos", "Importar y exportar", "swap"],
     ],
+  },
+  {
+    titulo: "Administración",
+    items: [["/admin/equipo", "Equipo y permisos", "lock"]],
   },
 ];
 const NAV = GRUPOS.flatMap((g) => g.items);
@@ -102,6 +107,7 @@ function Login() {
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [ready, setReady] = useState(false);
   const [menu, setMenu] = useState(false);
 
@@ -113,21 +119,29 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [menu]);
-  const [user, setUser] = useState<{ email: string; name?: string } | null>(null);
+  const [user, setUser] = useState<UsuarioPanel | null>(null);
 
   useEffect(() => {
     const client = pb();
     const sync = () =>
-      setUser(client.authStore.isValid && client.authStore.record ? (client.authStore.record as unknown as { email: string; name?: string }) : null);
+      setUser(client.authStore.isValid && client.authStore.record ? (client.authStore.record as unknown as UsuarioPanel) : null);
     sync();
     setReady(true);
-    // refresca el token si sigue vigente; si no, cierra la sesión
+    // refresca el token (y los permisos, si se los cambiaron) si sigue vigente; si no, cierra la sesión
     if (client.authStore.isValid) client.collection("users").authRefresh().catch(() => client.authStore.clear());
     return client.authStore.onChange(sync);
   }, []);
 
+  const destino = pathname === "/admin" || pathname === "/admin/" ? inicio(user) : null;
+  useEffect(() => {
+    if (destino) router.replace(destino);
+  }, [destino, router]);
+
   if (!ready) return null;
   if (!user) return <Login />;
+
+  const grupos = GRUPOS.map((g) => ({ ...g, items: g.items.filter(([href]) => puede(user, href)) })).filter((g) => g.items.length);
+  const permitido = !pathname || puede(user, pathname);
 
   return (
     <ToastProvider>
@@ -153,7 +167,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </button>
           <div className="admin__panel" id="admin-menu" data-open={menu || undefined}>
             <nav aria-label="Secciones del panel">
-              {GRUPOS.map((g) => (
+              {grupos.map((g) => (
                 <div key={g.titulo} className="admin__group">
                   <span className="admin__group-title">{g.titulo}</span>
                   {g.items.map(([href, label, icon]) => (
@@ -182,7 +196,20 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </div>
         </aside>
         {menu && <button type="button" className="admin__scrim" aria-label="Cerrar menú" tabIndex={-1} onClick={() => setMenu(false)} />}
-        <main className="admin__main">{children}</main>
+        <main className="admin__main">
+          {permitido ? (
+            children
+          ) : (
+            <div className="empty">
+              <p>No tenés permiso para entrar a esta sección. Si lo necesitás, pedíselo a un administrador del panel.</p>
+              {inicio(user) && (
+                <Link href={inicio(user)!} className="btn btn--navy btn--sm">
+                  Ir a mi sección
+                </Link>
+              )}
+            </div>
+          )}
+        </main>
       </div>
     </ToastProvider>
   );

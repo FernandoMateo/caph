@@ -1,5 +1,4 @@
-import { redirect } from "next/navigation";
-
+// /admin: el panel (AdminShell) lleva a la primera sección que el usuario tiene permitida.
 export default function AdminIndex() {
-  redirect("/admin/honorarios");
+  return null;
 }

@@ -76,13 +76,14 @@ En `/admin/contabilidad`. No es público: lo ven los usuarios del panel y, cada 
 
 ## Usuarios del panel
 
-Los usuarios del panel son registros de la colección **users** de PocketBase (no se pueden registrar solos).
+Los usuarios del panel son registros de la colección **users** de PocketBase (no se pueden registrar solos). Se manejan desde el mismo panel, en **Administración → Equipo y permisos** (solo lo ven los administradores):
 
-1. Entrar al dashboard de PocketBase con el superusuario: en el servidor por túnel SSH (`deploy/tunel-vps.ps1`, después `http://127.0.0.1:8091/_/`); en local `http://127.0.0.1:8090/_/`. Desde el dominio público no se publica.
-2. Colección **users** → **New record** → email, contraseña (10 caracteres como mínimo) y marcar **verified**.
-3. Esa persona entra en `https://caphsf.ar/admin`.
+- **+ Nuevo usuario**: nombre, email y permisos. Se genera una contraseña provisoria para pasársela (por email o copiando el mensaje); entra en `https://caphsf.ar/admin`.
+- **Administrador**: ve y toca todo, incluidos Equipo e Importar y exportar. Si no, se eligen las secciones (Altas, Asociados y profesionales, Proveedores, Contabilidad, Capacitaciones, Cursos, Honorarios, Galería, Textos y rubros) y el menú muestra solo esas.
+- Los permisos los hace cumplir el servidor en las reglas de cada colección (`pb_migrations/1761401320_caph_equipo.js`), no solo el menú: sin Contabilidad no se ven pagos ni cuotas; sin una sección se pueden leer las fichas pero no cambiarlas.
+- Nadie se cambia sus propios permisos ni se borra a sí mismo, así siempre queda un administrador. Para quitar el acceso, la ✕ del listado.
 
-Para quitar el acceso, borrar el registro. El superusuario es solo para mantenimiento; no compartirlo.
+El superusuario de PocketBase (`http://127.0.0.1:8091/_/` por túnel SSH con `deploy/tunel-vps.ps1`) es solo para mantenimiento; no compartirlo.
 
 ## Seguridad
 
