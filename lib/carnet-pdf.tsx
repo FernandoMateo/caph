@@ -26,7 +26,7 @@ import {
 } from "@react-pdf/renderer";
 import QRCode from "qrcode";
 import { etiquetaDetalle, iniciales, type DatosCarnet } from "../components/portal/Carnet";
-import { LINKS } from "./data";
+import { LINKS, etiquetaRol } from "./data";
 
 // sin guiones de corte: un nombre largo termina en "…" en lugar de partirse
 Font.registerHyphenationCallback((palabra) => [palabra]);
@@ -174,7 +174,7 @@ function Frente({ d, foto, qr }: { d: DatosCarnet; foto: string; qr: string }) {
       </Svg>
 
       <Marca oscura top={5} />
-      <Pildora texto={d.rol} fondo={rol.fondo} color={rol.texto} top={5.4} />
+      <Pildora texto={etiquetaRol(d.rol)} fondo={rol.fondo} color={rol.texto} top={5.4} />
 
       <View style={[s.abs, { left: c(6.2), top: c(19.2), width: c(19.6), height: c(24.6), borderRadius: c(2.8), overflow: "hidden", backgroundColor: "#e7eff4" }]}>
         {foto ? (
@@ -226,7 +226,7 @@ function Frente({ d, foto, qr }: { d: DatosCarnet; foto: string; qr: string }) {
 }
 
 function Dorso({ d }: { d: DatosCarnet }) {
-  const rol = d.rol.toLowerCase();
+  const rol = etiquetaRol(d.rol).toLowerCase();
   const k = 70 / 82;
   return (
     <View style={s.corte}>

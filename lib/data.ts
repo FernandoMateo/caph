@@ -208,3 +208,6 @@ export const PROVEEDORES: Proveedor[] = [
   { n: "VOLTO S.A.S", r: "otros", v: true, tel: "3425194298", web: "https://volto.dev", d: "Agentes de inteligencia artificial para atención y reclamos por WhatsApp, Instagram, web y voz." },
   { n: "José Manuel Dios · Libros de datos", r: "otros", v: true, tel: "1144981490", web: "https://www.librosdedatos.com.ar", d: "Libros de actas y registros para administración de consorcios." },
 ];
+
+/** Cómo se nombra cada tipo de socio en la credencial: los proveedores son "Proveedor oficial". */
+export const etiquetaRol = (rol: string) => (rol === "Proveedor" ? "Proveedor oficial" : rol);

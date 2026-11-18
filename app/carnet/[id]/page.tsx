@@ -5,7 +5,7 @@ import { Icon } from "../../../components/Icon";
 import { LogoMark } from "../../../components/Logo";
 import { CarnetPublico } from "../../../components/portal/CarnetPublico";
 import { getCarnetPublico } from "../../../lib/content";
-import { LINKS } from "../../../lib/data";
+import { LINKS, etiquetaRol } from "../../../lib/data";
 import "../../admin/admin.css";
 import "../../portal/portal.css";
 import "../../verificar/verificar.css";
@@ -27,7 +27,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   if (!carnet) return { title: "Carnet · CAPH Santa Fe", robots: { index: false } };
   const h = await headers();
   const origen = `${h.get("x-forwarded-proto") ?? "http"}://${h.get("x-forwarded-host") ?? h.get("host")}`;
-  const titulo = `${carnet.nombre} · ${carnet.rol} de CAPH Santa Fe`;
+  const titulo = `${carnet.nombre} · ${etiquetaRol(carnet.rol)} de CAPH Santa Fe`;
   const descripcion = [carnet.subtitulo, carnet.localidad, carnet.numero && `N.º ${carnet.numero}`].filter(Boolean).join(" · ");
   return {
     title: titulo,

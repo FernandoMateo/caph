@@ -2,7 +2,7 @@
 
 import QRCode from "qrcode";
 import { useEffect, useRef, useState } from "react";
-import { LINKS } from "../../lib/data";
+import { LINKS, etiquetaRol } from "../../lib/data";
 import { LogoMark } from "../Logo";
 
 export type DatosCarnet = {
@@ -104,6 +104,7 @@ export function Carnet({ datos, volteado, onVoltear }: { datos: DatosCarnet; vol
   }, []);
 
   const rol = datos.rol.toLowerCase();
+  const etiqueta = etiquetaRol(datos.rol);
 
   return (
     <button
@@ -125,7 +126,7 @@ export function Carnet({ datos, volteado, onVoltear }: { datos: DatosCarnet; vol
             </svg>
             <span className="carnet__cabecera">
               <Marca oscura />
-              <span className="carnet__rol">{datos.rol}</span>
+              <span className="carnet__rol">{etiqueta}</span>
             </span>
 
             <span className="carnet__foto">
@@ -182,9 +183,9 @@ export function Carnet({ datos, volteado, onVoltear }: { datos: DatosCarnet; vol
               </span>
             </span>
             <span className="carnet__dorso-cuerpo">
-              <span className="carnet__dorso-titulo">Credencial de {rol}</span>
+              <span className="carnet__dorso-titulo">Credencial de {etiqueta.toLowerCase()}</span>
               <span className="carnet__dorso-texto">
-                Identifica a su titular como {rol} de la Cámara de la Propiedad Horizontal de Santa Fe, 1.ª Circunscripción.
+                Identifica a su titular como {etiqueta.toLowerCase()} de la Cámara de la Propiedad Horizontal de Santa Fe, 1.ª Circunscripción.
               </span>
               <span className="carnet__dorso-dato">
                 <small>Titular</small>

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Icon } from "../../../components/Icon";
 import { LogoMark } from "../../../components/Logo";
 import { getCredencial, type Credencial } from "../../../lib/content";
-import { LINKS } from "../../../lib/data";
+import { LINKS, etiquetaRol } from "../../../lib/data";
 import "../../admin/admin.css";
 import "../verificar.css";
 
@@ -47,7 +47,7 @@ export default async function VerificarPage({ params }: { params: Promise<{ id: 
               <div>
                 <h1>{credencial.nombre}</h1>
                 <p>
-                  {credencial.rol} de CAPH Santa Fe{credencial.numero && ` · N.º ${credencial.numero}`}
+                  {etiquetaRol(credencial.rol)} de CAPH Santa Fe{credencial.numero && ` · N.º ${credencial.numero}`}
                 </p>
                 {credencial.detalle && <p className="verificar__detalle">{credencial.detalle}</p>}
               </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { CarnetPublico as Datos } from "../../lib/content";
+import { etiquetaRol } from "../../lib/data";
 import { Icon } from "../Icon";
 import { telHref, telLabel } from "../Proveedores";
 import { Carnet } from "./Carnet";
@@ -27,7 +28,7 @@ function vcard(c: Datos) {
     tel && `TEL;TYPE=CELL:+${tel}`,
     c.email && `EMAIL;TYPE=WORK:${esc(c.email)}`,
     c.web && `URL:${esc(c.web)}`,
-    `NOTE:${esc(`${c.rol} de CAPH Santa Fe${c.numero ? ` · N.º ${c.numero}` : ""}`)}`,
+    `NOTE:${esc(`${etiquetaRol(c.rol)} de CAPH Santa Fe${c.numero ? ` · N.º ${c.numero}` : ""}`)}`,
     "END:VCARD",
   ].filter(Boolean);
   return lineas.join("\r\n");
@@ -59,7 +60,7 @@ export function CarnetPublico({ datos }: { datos: Datos }) {
     return () => clearTimeout(t);
   }, [aviso]);
 
-  const titulo = `${datos.nombre} · ${datos.rol} de CAPH Santa Fe`;
+  const titulo = `${datos.nombre} · ${etiquetaRol(datos.rol)} de CAPH Santa Fe`;
 
   return (
     <div className="tarjeta">
