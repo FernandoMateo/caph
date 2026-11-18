@@ -125,11 +125,11 @@ function Solicitud({
     [libres, buscar]
   );
 
-  const correr = async (accion: () => Promise<void>, texto: string) => {
+  const correr = async (accion: () => Promise<void>, texto: string | (() => string)) => {
     setBusy(true);
     try {
       await accion();
-      onListo(texto);
+      onListo(typeof texto === "function" ? texto() : texto);
     } catch (err) {
       toast("error", errorMessage(err));
     } finally {
@@ -137,12 +137,16 @@ function Solicitud({
     }
   };
 
-  const aprobar = () =>
-    correr(async () => {
+  const aprobar = () => {
+    let texto = `${nombre} aprobado.`;
+    return correr(async () => {
       if (ficha) {
         const cambios: Record<string, unknown> = { estado: "aprobado", activo: true, revisar: false, motivo: "" };
+        // vacío: el servidor le asigna el siguiente N.º libre de su tipo
         if (persona) cambios.numero = numero.trim();
-        await pb().collection(ficha.collectionName).update(ficha.id, cambios);
+        const guardada = await pb().collection(ficha.collectionName).update<{ numero?: string; rol?: string }>(ficha.id, cambios);
+        if (guardada.numero) texto += ` N.º ${guardada.numero}.`;
+        texto += guardada.rol === "asociado" ? " No se publica en la web: lo encuentra el validador." : " Ya se ve en la web.";
       } else if (cuenta) {
         if (!vincular) throw new Error("Elegí la ficha que corresponde a esta cuenta.");
         await pb().collection(coleccion(rol)).update(vincular, { cuenta: cuenta.id });
@@ -150,7 +154,8 @@ function Solicitud({
       // la cuenta puede venir sola (pendiente) o solo como dueña de la ficha (si ya estaba activa no se toca)
       if (cuenta && cuenta.estado !== "activa") await pb().collection("cuentas").update(cuenta.id, { estado: "activa", motivo: "" });
       else if (!cuenta && ficha?.cuenta) await pb().collection("cuentas").update(ficha.cuenta, { estado: "activa", motivo: "" });
-    }, `${nombre} aprobado.${ficha ? " Ya se ve en la web." : ""}`);
+    }, () => texto);
+  };
 
   const rechazar = (motivo: string) =>
     correr(async () => {
@@ -238,7 +243,7 @@ function Solicitud({
           {ficha && persona && (
             <label className="solicitud__numero">
               <span>N.º de {rol === "asociado" ? "asociado" : "registro"}</span>
-              <input value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="Opcional" />
+              <input value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="Automático" title="Si lo dejás vacío, se asigna el siguiente número libre." />
             </label>
           )}
           <button type="button" className="btn btn--ghost-dark btn--sm" onClick={() => setRechazo("")} disabled={busy}>

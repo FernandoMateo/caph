@@ -104,7 +104,7 @@ function Form({ initial, onSaved, onCancel }: { initial: Partial<Profesional>; o
             : await pb().collection("profesionales").create<Profesional>(payload);
           toast(
             "ok",
-            `${saved.nombre} guardado.` +
+            `${saved.nombre} guardado${saved.numero ? ` con el N.º ${saved.numero}` : ""}.` +
               (saved.rol === "asociado"
                 ? saved.activo
                   ? " No se publica en la web, pero el validador lo encuentra."
@@ -173,8 +173,11 @@ function Form({ initial, onSaved, onCancel }: { initial: Partial<Profesional>; o
       <Field label="Estudio o razón social" hint="Opcional. Ej.: Estudio Pérez & Asociados">
         <input value={data.estudio} onChange={(e) => set("estudio", e.target.value)} />
       </Field>
-      <Field label={data.rol === "asociado" ? "N.º de asociado" : "N.º de registro"} hint="Ej.: A-001">
-        <input value={data.numero} onChange={(e) => set("numero", e.target.value)} />
+      <Field
+        label={data.rol === "asociado" ? "N.º de asociado" : "N.º de registro"}
+        hint={initial.id ? "Si lo borrás, se asigna el siguiente libre." : "Se genera solo al guardar (el siguiente libre). Escribilo solo si ya tiene uno."}
+      >
+        <input value={data.numero} onChange={(e) => set("numero", e.target.value)} placeholder={initial.id ? "" : "Automático"} />
       </Field>
       <Field label="Título o profesión">
         <input value={data.titulo} onChange={(e) => set("titulo", e.target.value)} />

@@ -89,6 +89,42 @@ function seMuestra(record, coleccion) {
   return publicada(record) && (coleccion === "proveedores" || record.getString("rol") === "profesional");
 }
 
+/**
+ * N.º de socio (asociados y profesionales, cada tipo con su numeración):
+ * - Si la ficha aprobada no tiene N.º, se le asigna el siguiente: el mayor N.º numérico de su tipo + 1,
+ *   con el mismo ancho que los existentes ("0045" → "0046"). Los N.º con letras ("A-001") no cuentan.
+ * - Si el panel escribe uno a mano, no puede repetir el de otra ficha del mismo tipo.
+ */
+function asignarNumero(app, record) {
+  const rol = record.getString("rol") || "asociado";
+  const numero = record.getString("numero").trim();
+  record.set("numero", numero);
+  if (numero) {
+    const iguales = app.findRecordsByFilter(
+      "profesionales",
+      "rol = {:rol} && numero = {:numero} && id != {:id}",
+      "",
+      1,
+      0,
+      { rol: rol, numero: numero, id: record.id }
+    );
+    if (iguales.length) throw new BadRequestError(`El N.º ${numero} ya es de ${iguales[0].getString("nombre")}.`);
+    return;
+  }
+  if (record.getString("estado") !== "aprobado") return;
+  let mayor = 0;
+  let ancho = 1;
+  for (const r of app.findRecordsByFilter("profesionales", "rol = {:rol} && numero != ''", "", 0, 0, { rol: rol })) {
+    const n = r.getString("numero").trim();
+    if (!/^\d{1,8}$/.test(n)) continue;
+    mayor = Math.max(mayor, parseInt(n, 10));
+    ancho = Math.max(ancho, n.length);
+  }
+  let siguiente = String(mayor + 1);
+  while (siguiente.length < ancho) siguiente = "0" + siguiente;
+  record.set("numero", siguiente);
+}
+
 /** Copia del registro original los campos que el dueño no puede cambiar. */
 function restaurar(record, coleccion) {
   const original = record.original();
@@ -169,6 +205,7 @@ function crearFicha(e, coleccion) {
   // desde el panel: si no dice otra cosa, la ficha queda aprobada; si además es visible, tiene que estar completa
   if (!r.getString("estado")) r.set("estado", "aprobado");
   if (coleccion === "profesionales" && !r.getString("rol")) r.set("rol", "asociado");
+  if (coleccion === "profesionales") asignarNumero(e.app, r);
   if (seMuestra(r, coleccion)) exigirCompleta(r, coleccion);
 }
 
@@ -200,6 +237,10 @@ function actualizarFicha(e, coleccion) {
   }
   // pasar a verse en la web (aprobarla visible, o hacer visible una aprobada) exige la ficha completa
   if (seMuestra(r, coleccion) && !seMuestra(r.original(), coleccion)) exigirCompleta(r, coleccion);
+  // al aprobar (o si se le borró), el N.º se genera solo; si cambió el tipo, no puede chocar con otro
+  const o = r.original();
+  if (coleccion === "profesionales" && (r.getString("numero") !== o.getString("numero") || r.getString("rol") !== o.getString("rol") || r.getString("estado") !== o.getString("estado")))
+    asignarNumero(e.app, r);
   return r.getString("estado") === "aprobado" && antes !== "aprobado";
 }
 
