@@ -227,11 +227,13 @@ type ResultadoHabilitar = {
   reiniciadas: number;
   yaTenian: number;
   omitidas: { nombre: string; motivo: string }[];
+  porTipo?: Record<string, number>;
 };
 
 /**
- * "Portal para todos los asociados": a cada asociado aprobado le crea (o vincula) la cuenta con el email de su
+ * "Portal para todos": a cada asociado y proveedor aprobado le crea (o vincula) la cuenta con el email de su
  * ficha y una misma contraseña inicial. Al entrar por primera vez el portal le pide que la cambie.
+ * Está en Asociados y en Proveedores; las dos corren lo mismo (los dos grupos juntos).
  */
 export function HabilitarPortal({ onListo }: { onListo: () => void }) {
   const toast = useToast();
@@ -243,15 +245,20 @@ export function HabilitarPortal({ onListo }: { onListo: () => void }) {
 
   if (!abierto)
     return (
-      <button type="button" className="btn btn--ghost-dark btn--sm" onClick={() => setAbierto(true)} title="Acceso al portal para todos los asociados con una contraseña inicial">
-        <Icon name="users" size={16} /> Portal para todos los asociados
+      <button type="button" className="btn btn--ghost-dark btn--sm" onClick={() => setAbierto(true)} title="Acceso al portal para todos los asociados y proveedores con una contraseña inicial">
+        <Icon name="users" size={16} /> Portal para asociados y proveedores
       </button>
     );
 
   return (
-    <div className="habilitar" role="group" aria-label="Portal para todos los asociados">
+    <div className="habilitar" role="group" aria-label="Portal para todos los asociados y proveedores">
       {res ? (
         <>
+          {res.porTipo && (
+            <p className="section-hint">
+              Revisados: {Object.entries(res.porTipo).map(([t, n]) => `${n} ${t === "Proveedor" ? "proveedores" : "asociados"}`).join(" y ")}.
+            </p>
+          )}
           <p className="acceso__ok">
             <Icon name="check" size={18} /> Listo: {res.creadas} cuentas nuevas, {res.vinculadas} vinculadas
             {res.reiniciadas ? `, ${res.reiniciadas} con la contraseña reiniciada` : ""}
@@ -289,8 +296,8 @@ export function HabilitarPortal({ onListo }: { onListo: () => void }) {
             e.preventDefault();
             if (clave.length < 8) return toast("error", "La contraseña inicial tiene que tener al menos 8 caracteres.");
             const aviso = reiniciar
-              ? "Todos los asociados, también los que ya entraban, van a quedar con esta contraseña. ¿Seguir?"
-              : "Los asociados sin acceso van a poder entrar con su email y esta contraseña. ¿Seguir?";
+              ? "Todos los asociados y proveedores, también los que ya entraban, van a quedar con esta contraseña. ¿Seguir?"
+              : "Los asociados y proveedores sin acceso van a poder entrar con su email y esta contraseña. ¿Seguir?";
             if (!window.confirm(aviso)) return;
             setBusy(true);
             try {

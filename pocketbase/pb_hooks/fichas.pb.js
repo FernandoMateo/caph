@@ -31,7 +31,7 @@ routerAdd("GET", "/api/caph/validar", (e) => {
   return e.json(200, { resultados });
 });
 
-// Panel: acceso al portal para todos los asociados, con una contraseña inicial que cambian al entrar.
+// Panel: acceso al portal para todos los asociados y proveedores, con una contraseña inicial que cambian al entrar.
 routerAdd("POST", "/api/caph/habilitar-portal", (e) => {
   const lib = require(`${__hooks}/fichas.js`);
   if (!lib.puedeHabilitar(e)) throw new ForbiddenError("No tenés permiso para esto.");

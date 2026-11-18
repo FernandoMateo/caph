@@ -194,28 +194,33 @@ function actualizarCuenta(e) {
 
 /* ---------- portal para todos ---------- */
 
-/** Del panel con permiso sobre las fichas de personas (o administrador). */
+/** Del panel con permiso sobre asociados o proveedores (o administrador). */
 function puedeHabilitar(e) {
   if (!e.auth) return false;
   if (e.auth.isSuperuser()) return true;
   if (e.auth.collection().name !== "users") return false;
   if (e.auth.getBool("admin")) return true;
   const permisos = e.auth.get("permisos") || [];
-  for (let i = 0; i < permisos.length; i++) if (permisos[i] === "profesionales" || permisos[i] === "altas") return true;
+  for (let i = 0; i < permisos.length; i++) if (["profesionales", "proveedores", "altas"].indexOf(permisos[i]) >= 0) return true;
   return false;
 }
 
+// a quién le da acceso el botón del panel: asociados y proveedores aprobados
+const GRUPOS_PORTAL = [
+  { coleccion: "profesionales", filtro: "rol = 'asociado' && estado = 'aprobado'", rol: "asociado", tipo: "Asociado" },
+  { coleccion: "proveedores", filtro: "estado = 'aprobado'", rol: "proveedor", tipo: "Proveedor" },
+];
+
 /**
- * Le da acceso al portal a todos los asociados aprobados, con su email y una misma contraseña inicial que
- * tienen que cambiar al entrar. Si el email ya tiene una cuenta libre de persona, la vincula.
- * Los que ya tenían acceso no se tocan, salvo que se pida reiniciarlos.
+ * Le da acceso al portal a todos los asociados y proveedores aprobados, con el email de su ficha y una misma
+ * contraseña inicial que tienen que cambiar al entrar. Si el email ya tiene una cuenta libre del mismo tipo
+ * (persona / proveedor), la vincula. Los que ya tenían acceso no se tocan, salvo que se pida reiniciarlos.
  */
 function habilitarPortal(app, clave, reiniciar) {
   clave = String(clave || "");
   if (clave.length < 8) throw new BadRequestError("La contraseña inicial tiene que tener al menos 8 caracteres.");
-  const res = { creadas: 0, vinculadas: 0, reiniciadas: 0, yaTenian: 0, omitidas: [] };
+  const res = { creadas: 0, vinculadas: 0, reiniciadas: 0, yaTenian: 0, omitidas: [], porTipo: {} };
   const col = app.findCollectionByNameOrId("cuentas");
-  const fichas = app.findRecordsByFilter("profesionales", "rol = 'asociado' && estado = 'aprobado'", "nombre", 0, 0);
 
   const ponerClave = (cuenta) => {
     cuenta.setPassword(clave);
@@ -223,26 +228,35 @@ function habilitarPortal(app, clave, reiniciar) {
     cuenta.set("verified", true);
   };
 
-  for (const f of fichas) {
-    const nombre = f.getString("nombre");
+  for (const g of GRUPOS_PORTAL) {
+    const fichas = app.findRecordsByFilter(g.coleccion, g.filtro, "nombre", 0, 0);
+    res.porTipo[g.tipo] = fichas.length;
+    for (const f of fichas) habilitarFicha(app, col, g, f, reiniciar, ponerClave, res);
+  }
+  return res;
+}
+
+function habilitarFicha(app, col, g, f, reiniciar, ponerClave, res) {
+    const nombre = g.tipo + " · " + f.getString("nombre");
+    const esProveedor = g.rol === "proveedor";
     try {
       const actual = f.getString("cuenta");
       if (actual) {
         if (!reiniciar) {
           res.yaTenian++;
-          continue;
+          return;
         }
         const cuenta = app.findRecordById("cuentas", actual);
         ponerClave(cuenta);
         app.save(cuenta);
         res.reiniciadas++;
-        continue;
+        return;
       }
 
       const email = f.getString("email").trim().toLowerCase();
       if (!emailValido(email)) {
         res.omitidas.push({ nombre: nombre, motivo: "No tiene un email válido en la ficha." });
-        continue;
+        return;
       }
 
       let cuenta = null;
@@ -251,17 +265,18 @@ function habilitarPortal(app, clave, reiniciar) {
       } catch (_) {}
 
       if (cuenta) {
-        const otra = app.findRecordsByFilter("profesionales", "cuenta = {:c} && id != {:id}", "", 1, 0, { c: cuenta.id, id: f.id });
-        const prov = app.findRecordsByFilter("proveedores", "cuenta = {:c}", "", 1, 0, { c: cuenta.id });
-        if (otra.length || prov.length) {
-          res.omitidas.push({ nombre: nombre, motivo: `El email ${email} ya es el acceso de ${(otra[0] || prov[0]).getString("nombre")}.` });
-          continue;
+        const params = { c: cuenta.id, id: f.id };
+        const pers = app.findRecordsByFilter("profesionales", "cuenta = {:c} && id != {:id}", "", 1, 0, params);
+        const prov = app.findRecordsByFilter("proveedores", "cuenta = {:c} && id != {:id}", "", 1, 0, params);
+        if (pers.length || prov.length) {
+          res.omitidas.push({ nombre: nombre, motivo: `El email ${email} ya es el acceso de ${(pers[0] || prov[0]).getString("nombre")}.` });
+          return;
         }
-        if (cuenta.getString("rol") === "proveedor") {
-          res.omitidas.push({ nombre: nombre, motivo: `El email ${email} ya tiene una cuenta de proveedor.` });
-          continue;
+        if ((cuenta.getString("rol") === "proveedor") !== esProveedor) {
+          res.omitidas.push({ nombre: nombre, motivo: `El email ${email} ya tiene una cuenta de ${esProveedor ? "persona" : "proveedor"}.` });
+          return;
         }
-        cuenta.set("rol", "asociado");
+        cuenta.set("rol", g.rol);
         cuenta.set("estado", "activa");
         ponerClave(cuenta);
         app.save(cuenta);
@@ -270,8 +285,8 @@ function habilitarPortal(app, clave, reiniciar) {
         cuenta = new Record(col);
         cuenta.set("email", email);
         cuenta.set("emailVisibility", false);
-        cuenta.set("name", nombre.slice(0, 120) || email);
-        cuenta.set("rol", "asociado");
+        cuenta.set("name", f.getString("nombre").slice(0, 120) || email);
+        cuenta.set("rol", g.rol);
         cuenta.set("estado", "activa");
         cuenta.set("telefono", f.getString("telefono").slice(0, 40));
         ponerClave(cuenta);
@@ -283,8 +298,6 @@ function habilitarPortal(app, clave, reiniciar) {
     } catch (err) {
       res.omitidas.push({ nombre: nombre, motivo: String((err && err.message) || err) });
     }
-  }
-  return res;
 }
 
 /* ---------- fichas ---------- */

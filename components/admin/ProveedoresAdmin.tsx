@@ -9,7 +9,7 @@ import { Icon } from "../Icon";
 import { CamposCuota, cuotaVacia, payloadCuota, validarCuota } from "./ContabilidadAdmin";
 import type { Tarifa } from "./cuentas";
 import { Drawer, Empty, Field, Loading, PageHead, Toggle, useConfirm, useToast } from "./ui";
-import { AccesoPortal, AccesosMasivos } from "./AccesoPortal";
+import { AccesoPortal, AccesosMasivos, HabilitarPortal } from "./AccesoPortal";
 
 type Proveedor = {
   id: string;
@@ -309,6 +309,7 @@ export function ProveedoresAdmin() {
           </button>
         )}
         <AccesosMasivos coleccion="proveedores" fichas={list} onListo={load} />
+        <HabilitarPortal onListo={load} />
       </div>
 
       {!items ? (
