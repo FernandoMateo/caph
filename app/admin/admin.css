@@ -271,6 +271,14 @@ body:has(.login) {
   font-size: 0.875rem;
   color: var(--text-2);
 }
+button.login__back {
+  padding: 0.25rem;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
 
 /* ---------- estructura ---------- */
 
@@ -1737,6 +1745,28 @@ button.row-link {
   flex: none;
   margin-top: 2px;
   color: #1d6b38;
+}
+/* "Portal para todos los asociados": se abre debajo de la barra de herramientas */
+.habilitar {
+  flex: 1 1 100%;
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.habilitar__check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+.habilitar__omitidas {
+  margin: 0;
+  padding-left: 1.1rem;
+  max-height: 14rem;
+  overflow: auto;
+  font-size: 0.875rem;
 }
 .acceso__credencial dl {
   display: grid;

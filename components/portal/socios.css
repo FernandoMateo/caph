@@ -1,0 +1,282 @@
+/* Popup "Asociados" del menú de la web: ingreso, estado, correo y credencial del socio. */
+
+.socios {
+  width: min(440px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-lg);
+  background: var(--white);
+  color: var(--text);
+  box-shadow: 0 24px 64px rgba(9, 17, 53, 0.28);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.socios::backdrop {
+  background: rgba(9, 17, 53, 0.55);
+  backdrop-filter: blur(3px);
+}
+.socios[open] {
+  animation: socios-entra 0.28s var(--ease);
+}
+@keyframes socios-entra {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .socios[open] {
+    animation: none;
+  }
+}
+
+.socios__caja {
+  display: grid;
+  gap: 1rem;
+  padding: 20px;
+}
+.socios__cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.socios__cabecera h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: var(--navy);
+}
+.socios__cerrar {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin: -8px -8px -8px 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--navy);
+  cursor: pointer;
+}
+.socios__cerrar:hover {
+  background: var(--surface-2);
+}
+
+/* ---------- formularios ---------- */
+
+.socios__form {
+  display: grid;
+  gap: 0.9rem;
+}
+.socios__form h1 {
+  margin: 0;
+  font-size: 1.125rem;
+  color: var(--navy);
+}
+.socios__form p,
+.socios__intro {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 0.9375rem;
+}
+.socios .field {
+  display: grid;
+  gap: 0.35rem;
+}
+.socios .field__label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--navy);
+}
+.socios input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--white);
+  color: var(--text);
+  font: inherit;
+  font-size: 1rem;
+}
+.socios input:focus-visible {
+  outline: none;
+  border-color: var(--navy);
+  box-shadow: 0 0 0 4px rgba(126, 182, 200, 0.45);
+}
+.socios .form-error {
+  margin: 0;
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--r-sm);
+  background: #fdecea;
+  color: #8a1f1f;
+  font-size: 0.875rem;
+}
+.socios .btn--block {
+  width: 100%;
+}
+.socios .login__back,
+.socios__link {
+  justify-self: center;
+  padding: 0.25rem;
+  border: 0;
+  background: none;
+  color: var(--text-2);
+  font: inherit;
+  font-size: 0.875rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.socios__links {
+  display: grid;
+  gap: 0.35rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--text-2);
+}
+.socios__links a {
+  font-weight: 600;
+  color: var(--navy);
+}
+
+.btn--outline {
+  background: transparent;
+  color: var(--navy);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+.btn--outline:hover {
+  background: var(--surface-2);
+}
+
+/* ---------- resumen ---------- */
+
+.socios__resumen {
+  display: grid;
+  gap: 1rem;
+}
+.socios__hola {
+  display: grid;
+  gap: 0.1rem;
+}
+.socios__hola strong {
+  font-size: 1.125rem;
+  color: var(--navy);
+}
+.socios__hola span {
+  font-size: 0.875rem;
+  color: var(--text-2);
+}
+.socios__datos {
+  display: grid;
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+.socios__datos > div {
+  display: grid;
+  grid-template-columns: 6.5rem minmax(0, 1fr);
+  gap: 0.75rem;
+  padding: 0.7rem 0.9rem;
+}
+.socios__datos > div + div {
+  border-top: 1px solid var(--line);
+}
+.socios__datos dt {
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.socios__datos dd {
+  display: grid;
+  gap: 0.2rem;
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.socios__datos small {
+  font-weight: 400;
+  font-size: 0.8125rem;
+  color: var(--text-2);
+}
+.socios__estado {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  background: var(--surface-2);
+  color: var(--navy);
+}
+.socios__estado::before {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+.socios__estado[data-tono="ok"] {
+  background: #e3f4ea;
+  color: #17603a;
+}
+.socios__estado[data-tono="warn"] {
+  background: #fff4d6;
+  color: #7a5200;
+}
+.socios__estado[data-tono="off"] {
+  background: #fdecea;
+  color: #8a1f1f;
+}
+
+.socios__credencial {
+  display: grid;
+  gap: 0.6rem;
+}
+.socios__credencial h3 {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--navy);
+}
+.socios__credencial .portal__pista {
+  margin: 0;
+}
+.socios__nota {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--text-2);
+}
+.socios__acciones,
+.socios__pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.socios__pie {
+  justify-content: space-between;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--line);
+}
+
+.socios .loading {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 24px 4px;
+  color: var(--text-2);
+}
+.socios .spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--line-strong);
+  border-top-color: var(--navy);
+  border-radius: 50%;
+  animation: socios-gira 0.8s linear infinite;
+}
+@keyframes socios-gira {
+  to {
+    transform: rotate(360deg);
+  }
+}

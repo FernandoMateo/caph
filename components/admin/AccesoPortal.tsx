@@ -99,7 +99,7 @@ function mensaje(c: Credencial) {
     `Hola ${c.nombre.split(/\s+/)[0]}! Ya tenés acceso al portal de la Cámara de la Propiedad Horizontal de Santa Fe: ` +
     `tu carnet digital, tu ficha en la web y tus cuotas.\n\n` +
     `Ingresá en ${portal}\nEmail: ${c.email}\nContraseña: ${c.clave}\n\n` +
-    `Es una contraseña provisoria: cambiala desde tu portal, en "Contraseña".`
+    `Es una contraseña provisoria: al entrar por primera vez te pide que elijas una nueva.`
   );
 }
 
@@ -218,6 +218,110 @@ export function AccesoPortal({ coleccion, ficha, onCambio }: { coleccion: Colecc
         </div>
       )}
     </section>
+  );
+}
+
+type ResultadoHabilitar = {
+  creadas: number;
+  vinculadas: number;
+  reiniciadas: number;
+  yaTenian: number;
+  omitidas: { nombre: string; motivo: string }[];
+};
+
+/**
+ * "Portal para todos los asociados": a cada asociado aprobado le crea (o vincula) la cuenta con el email de su
+ * ficha y una misma contraseña inicial. Al entrar por primera vez el portal le pide que la cambie.
+ */
+export function HabilitarPortal({ onListo }: { onListo: () => void }) {
+  const toast = useToast();
+  const [abierto, setAbierto] = useState(false);
+  const [clave, setClave] = useState("");
+  const [reiniciar, setReiniciar] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [res, setRes] = useState<ResultadoHabilitar | null>(null);
+
+  if (!abierto)
+    return (
+      <button type="button" className="btn btn--ghost-dark btn--sm" onClick={() => setAbierto(true)} title="Acceso al portal para todos los asociados con una contraseña inicial">
+        <Icon name="users" size={16} /> Portal para todos los asociados
+      </button>
+    );
+
+  return (
+    <div className="habilitar" role="group" aria-label="Portal para todos los asociados">
+      {res ? (
+        <>
+          <p className="acceso__ok">
+            <Icon name="check" size={18} /> Listo: {res.creadas} cuentas nuevas, {res.vinculadas} vinculadas
+            {res.reiniciadas ? `, ${res.reiniciadas} con la contraseña reiniciada` : ""}
+            {res.yaTenian ? `. ${res.yaTenian} ya tenían acceso y no se tocaron` : ""}.
+          </p>
+          {res.omitidas.length > 0 && (
+            <>
+              <p className="section-hint">Sin acceso ({res.omitidas.length}): completales el email en la ficha y volvé a correrlo.</p>
+              <ul className="habilitar__omitidas">
+                {res.omitidas.map((o) => (
+                  <li key={o.nombre + o.motivo}>
+                    <strong>{o.nombre}</strong> · {o.motivo}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          <div className="acceso__acciones">
+            <button
+              type="button"
+              className="btn btn--ghost-dark btn--sm"
+              onClick={() => {
+                setRes(null);
+                setAbierto(false);
+              }}
+            >
+              Cerrar
+            </button>
+          </div>
+        </>
+      ) : (
+        <form
+          className="form-grid"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            if (clave.length < 8) return toast("error", "La contraseña inicial tiene que tener al menos 8 caracteres.");
+            const aviso = reiniciar
+              ? "Todos los asociados, también los que ya entraban, van a quedar con esta contraseña. ¿Seguir?"
+              : "Los asociados sin acceso van a poder entrar con su email y esta contraseña. ¿Seguir?";
+            if (!window.confirm(aviso)) return;
+            setBusy(true);
+            try {
+              const r = await pb().send<ResultadoHabilitar>("/api/caph/habilitar-portal", { method: "POST", body: { clave, reiniciar } });
+              setRes(r);
+              setClave("");
+              onListo();
+            } catch (err) {
+              toast("error", errorMessage(err));
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          <Field label="Contraseña inicial" hint="La misma para todos. Al entrar por primera vez, el portal les pide que la cambien." wide>
+            <input type="text" autoComplete="off" spellCheck={false} minLength={8} required value={clave} onChange={(e) => setClave(e.target.value)} />
+          </Field>
+          <label className="habilitar__check" data-wide>
+            <input type="checkbox" checked={reiniciar} onChange={(e) => setReiniciar(e.target.checked)} /> También reiniciar a los que ya tienen acceso
+          </label>
+          <div className="form-actions" data-wide>
+            <button type="button" className="btn btn--ghost-dark btn--sm" onClick={() => setAbierto(false)} disabled={busy}>
+              Cancelar
+            </button>
+            <button type="submit" className="btn btn--navy btn--sm" disabled={busy}>
+              {busy ? "Habilitando…" : "Habilitar portal"}
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
   );
 }
 

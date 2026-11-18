@@ -12,7 +12,7 @@
 const PROTEGIDOS = {
   profesionales: ["estado", "activo", "verificado", "oculto_mora", "numero", "rol", "cuenta", "motivo", "revisar"],
   proveedores: ["estado", "activo", "verificado", "oculto_mora", "cuenta", "motivo", "revisar"],
-  cuentas: ["rol", "estado", "motivo"],
+  cuentas: ["rol", "estado", "motivo", "cambiar_clave"],
 };
 
 function esCuenta(e) {
@@ -162,10 +162,13 @@ function antiRobots(e) {
 function crearCuenta(e) {
   if (esPanel(e)) {
     if (!e.record.getString("estado")) e.record.set("estado", "activa");
+    // la contraseña la eligió el panel: la persona la cambia al entrar por primera vez
+    e.record.set("cambiar_clave", true);
     return;
   }
   e.record.set("estado", "pendiente");
   e.record.set("motivo", "");
+  e.record.set("cambiar_clave", false);
   antiRobots(e);
   if (e.record.getString("name").trim().length < 3) throw new BadRequestError("Completá tu nombre y apellido.");
   if (digitos(e.record.getString("telefono")) < 8) throw new BadRequestError("Completá un teléfono con código de área.");
@@ -173,8 +176,115 @@ function crearCuenta(e) {
   if (doc < 7 || doc > 11) throw new BadRequestError("Completá tu DNI o CUIT (solo números).");
 }
 
+/**
+ * - El panel le pone una contraseña (provisoria): la persona la tiene que cambiar al entrar.
+ * - La persona cambia la suya: deja de pedírsela, y no puede quedarse con la misma que le dio la Cámara.
+ */
 function actualizarCuenta(e) {
-  if (esCuenta(e)) restaurar(e.record, "cuentas");
+  const nueva = String((e.requestInfo().body || {}).password || "");
+  if (!esCuenta(e)) {
+    if (nueva) e.record.set("cambiar_clave", true);
+    return;
+  }
+  restaurar(e.record, "cuentas");
+  if (!nueva) return;
+  if (e.record.original().validatePassword(nueva)) throw new BadRequestError("Elegí una contraseña distinta a la que tenías.");
+  e.record.set("cambiar_clave", false);
+}
+
+/* ---------- portal para todos ---------- */
+
+/** Del panel con permiso sobre las fichas de personas (o administrador). */
+function puedeHabilitar(e) {
+  if (!e.auth) return false;
+  if (e.auth.isSuperuser()) return true;
+  if (e.auth.collection().name !== "users") return false;
+  if (e.auth.getBool("admin")) return true;
+  const permisos = e.auth.get("permisos") || [];
+  for (let i = 0; i < permisos.length; i++) if (permisos[i] === "profesionales" || permisos[i] === "altas") return true;
+  return false;
+}
+
+/**
+ * Le da acceso al portal a todos los asociados aprobados, con su email y una misma contraseña inicial que
+ * tienen que cambiar al entrar. Si el email ya tiene una cuenta libre de persona, la vincula.
+ * Los que ya tenían acceso no se tocan, salvo que se pida reiniciarlos.
+ */
+function habilitarPortal(app, clave, reiniciar) {
+  clave = String(clave || "");
+  if (clave.length < 8) throw new BadRequestError("La contraseña inicial tiene que tener al menos 8 caracteres.");
+  const res = { creadas: 0, vinculadas: 0, reiniciadas: 0, yaTenian: 0, omitidas: [] };
+  const col = app.findCollectionByNameOrId("cuentas");
+  const fichas = app.findRecordsByFilter("profesionales", "rol = 'asociado' && estado = 'aprobado'", "nombre", 0, 0);
+
+  const ponerClave = (cuenta) => {
+    cuenta.setPassword(clave);
+    cuenta.set("cambiar_clave", true);
+    cuenta.set("verified", true);
+  };
+
+  for (const f of fichas) {
+    const nombre = f.getString("nombre");
+    try {
+      const actual = f.getString("cuenta");
+      if (actual) {
+        if (!reiniciar) {
+          res.yaTenian++;
+          continue;
+        }
+        const cuenta = app.findRecordById("cuentas", actual);
+        ponerClave(cuenta);
+        app.save(cuenta);
+        res.reiniciadas++;
+        continue;
+      }
+
+      const email = f.getString("email").trim().toLowerCase();
+      if (!emailValido(email)) {
+        res.omitidas.push({ nombre: nombre, motivo: "No tiene un email válido en la ficha." });
+        continue;
+      }
+
+      let cuenta = null;
+      try {
+        cuenta = app.findAuthRecordByEmail("cuentas", email);
+      } catch (_) {}
+
+      if (cuenta) {
+        const otra = app.findRecordsByFilter("profesionales", "cuenta = {:c} && id != {:id}", "", 1, 0, { c: cuenta.id, id: f.id });
+        const prov = app.findRecordsByFilter("proveedores", "cuenta = {:c}", "", 1, 0, { c: cuenta.id });
+        if (otra.length || prov.length) {
+          res.omitidas.push({ nombre: nombre, motivo: `El email ${email} ya es el acceso de ${(otra[0] || prov[0]).getString("nombre")}.` });
+          continue;
+        }
+        if (cuenta.getString("rol") === "proveedor") {
+          res.omitidas.push({ nombre: nombre, motivo: `El email ${email} ya tiene una cuenta de proveedor.` });
+          continue;
+        }
+        cuenta.set("rol", "asociado");
+        cuenta.set("estado", "activa");
+        ponerClave(cuenta);
+        app.save(cuenta);
+        res.vinculadas++;
+      } else {
+        cuenta = new Record(col);
+        cuenta.set("email", email);
+        cuenta.set("emailVisibility", false);
+        cuenta.set("name", nombre.slice(0, 120) || email);
+        cuenta.set("rol", "asociado");
+        cuenta.set("estado", "activa");
+        cuenta.set("telefono", f.getString("telefono").slice(0, 40));
+        ponerClave(cuenta);
+        app.save(cuenta);
+        res.creadas++;
+      }
+      f.set("cuenta", cuenta.id);
+      app.saveNoValidate(f);
+    } catch (err) {
+      res.omitidas.push({ nombre: nombre, motivo: String((err && err.message) || err) });
+    }
+  }
+  return res;
 }
 
 /* ---------- fichas ---------- */
@@ -320,4 +430,15 @@ function validar(app, consulta) {
     }));
 }
 
-module.exports = { faltantes, crearCuenta, actualizarCuenta, crearFicha, actualizarFicha, alAprobar, sincronizarRolCuenta, validar };
+module.exports = {
+  faltantes,
+  crearCuenta,
+  actualizarCuenta,
+  crearFicha,
+  actualizarFicha,
+  alAprobar,
+  sincronizarRolCuenta,
+  validar,
+  puedeHabilitar,
+  habilitarPortal,
+};

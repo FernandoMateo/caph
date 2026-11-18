@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useState, type ReactNode } from "react";
 import { LINKS } from "../../lib/data";
 import { useRubros } from "../../lib/rubros-client";
 import { errorMessage } from "../../lib/pb-client";
@@ -15,7 +15,7 @@ import { compartir } from "./CarnetPublico";
 import { MisCuotas } from "./MisCuotas";
 import { MisCursos } from "./MisCursos";
 
-type Cuenta = {
+export type Cuenta = {
   id: string;
   email: string;
   name: string;
@@ -23,9 +23,11 @@ type Cuenta = {
   estado: "pendiente" | "activa" | "rechazada" | "suspendida" | "baja";
   referencia: string;
   motivo: string;
+  /** Entró con una contraseña que le dio la Cámara: tiene que elegir la suya antes de seguir. */
+  cambiar_clave?: boolean;
 };
 
-type FichaRec = Partial<Ficha> & {
+export type FichaRec = Partial<Ficha> & {
   id: string;
   collectionId: string;
   collectionName: string;
@@ -40,7 +42,7 @@ type FichaRec = Partial<Ficha> & {
   logo?: string;
 };
 
-const coleccion = (rol: Rol) => (rol === "proveedor" ? "proveedores" : "profesionales");
+export const coleccion = (rol: Rol) => (rol === "proveedor" ? "proveedores" : "profesionales");
 
 function aFicha(r: FichaRec): Ficha {
   return Object.fromEntries(Object.keys(FICHA).map((k) => [k, String(r[k as keyof Ficha] ?? "")])) as Ficha;
@@ -51,7 +53,19 @@ function imagen(r: FichaRec, thumb?: string) {
   return f ? portal().files.getURL(r, f, thumb ? { thumb } : undefined) : "";
 }
 
-function datosCarnet(rolCuenta: Rol, r: FichaRec, RUBROS: Record<string, string>): DatosCarnet {
+/** La ficha de la cuenta (la que lleva su carnet), o null si todavía no tiene. */
+export async function fichaDe(cuenta: Cuenta) {
+  try {
+    return await portal().collection(coleccion(cuenta.rol)).getFirstListItem<FichaRec>(`cuenta = "${cuenta.id}"`);
+  } catch {
+    return null;
+  }
+}
+
+/** La contraseña con la que se acaba de entrar: si hay que cambiarla, no se la vuelve a pedir. Solo en memoria. */
+let claveDeIngreso = "";
+
+export function datosCarnet(rolCuenta: Rol, r: FichaRec, RUBROS: Record<string, string>): DatosCarnet {
   const persona = rolCuenta !== "proveedor";
   // el tipo de la credencial es el de la ficha (lo decide la Cámara), no el de la cuenta
   const rol: Rol = persona ? (r.rol === "profesional" ? "profesional" : "asociado") : "proveedor";
@@ -70,7 +84,8 @@ function datosCarnet(rolCuenta: Rol, r: FichaRec, RUBROS: Record<string, string>
 
 /* ---------- ingreso ---------- */
 
-function Login() {
+/** Email y contraseña. Lo usan la página del portal y el popup "Asociados" de la web. */
+export function FormIngreso({ className, cabecera, pie }: { className: string; cabecera: ReactNode; pie?: ReactNode }) {
   const emailId = useId();
   const passId = useId();
   const [email, setEmail] = useState("");
@@ -79,56 +94,144 @@ function Login() {
   const [busy, setBusy] = useState(false);
 
   return (
+    <form
+      className={className}
+      onSubmit={async (e) => {
+        e.preventDefault();
+        setBusy(true);
+        setError("");
+        try {
+          claveDeIngreso = password;
+          await portal().collection("cuentas").authWithPassword(email.trim(), password);
+        } catch (err) {
+          claveDeIngreso = "";
+          const msg = errorMessage(err);
+          setError(msg.includes("authenticate") || msg.includes("identity") ? "Email o contraseña incorrectos." : msg);
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      {cabecera}
+      <label className="field" htmlFor={emailId}>
+        <span className="field__label">Email</span>
+        <input id={emailId} type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} />
+      </label>
+      <label className="field" htmlFor={passId}>
+        <span className="field__label">Contraseña</span>
+        <input id={passId} type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+      </label>
+      {error && (
+        <p className="form-error" role="alert">
+          {error}
+        </p>
+      )}
+      <button type="submit" className="btn btn--navy btn--block" disabled={busy}>
+        {busy ? "Ingresando…" : "Ingresar"}
+      </button>
+      {pie}
+    </form>
+  );
+}
+
+function Login() {
+  return (
     <main className="login">
-      <form
+      <FormIngreso
         className="login__card"
-        onSubmit={async (e) => {
-          e.preventDefault();
-          setBusy(true);
-          setError("");
-          try {
-            await portal().collection("cuentas").authWithPassword(email.trim(), password);
-          } catch (err) {
-            const msg = errorMessage(err);
-            setError(msg.includes("authenticate") || msg.includes("identity") ? "Email o contraseña incorrectos." : msg);
-          } finally {
-            setBusy(false);
-          }
-        }}
-      >
-        <Marca />
-        <h1>Mi portal</h1>
-        <p>Tu carnet digital, tu ficha en la web y tus datos en la Cámara.</p>
-        <label className="field" htmlFor={emailId}>
-          <span className="field__label">Email</span>
-          <input id={emailId} type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} />
-        </label>
-        <label className="field" htmlFor={passId}>
-          <span className="field__label">Contraseña</span>
-          <input id={passId} type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
-        </label>
-        {error && (
-          <p className="form-error" role="alert">
-            {error}
-          </p>
-        )}
-        <button type="submit" className="btn btn--navy btn--block" disabled={busy}>
-          {busy ? "Ingresando…" : "Ingresar"}
-        </button>
-        <p className="alta__ingresar">
-          ¿No tenés cuenta? <a href="/alta">Sumate a la Cámara</a>
-        </p>
-        <p className="alta__ingresar">
-          ¿Olvidaste tu contraseña?{" "}
-          <a href={LINKS.whatsapp} target="_blank" rel="noopener noreferrer">
-            Escribinos
-          </a>
-        </p>
-        <a href="/" className="login__back">
-          Volver a la web
-        </a>
-      </form>
+        cabecera={
+          <>
+            <Marca />
+            <h1>Mi portal</h1>
+            <p>Tu carnet digital, tu ficha en la web y tus datos en la Cámara.</p>
+          </>
+        }
+        pie={
+          <>
+            <p className="alta__ingresar">
+              ¿No tenés cuenta? <a href="/alta">Sumate a la Cámara</a>
+            </p>
+            <p className="alta__ingresar">
+              ¿Olvidaste tu contraseña?{" "}
+              <a href={LINKS.whatsapp} target="_blank" rel="noopener noreferrer">
+                Escribinos
+              </a>
+            </p>
+            <a href="/" className="login__back">
+              Volver a la web
+            </a>
+          </>
+        }
+      />
     </main>
+  );
+}
+
+/**
+ * Primer ingreso con la contraseña que dio la Cámara: hay que elegir una propia antes de seguir.
+ * Si se acaba de entrar, la actual ya se conoce; si se recargó la página, se pide de nuevo.
+ */
+export function CambiarClave({ cuenta, className, cabecera }: { cuenta: Cuenta; className: string; cabecera?: ReactNode }) {
+  const [conocida] = useState(claveDeIngreso);
+  const [actual, setActual] = useState("");
+  const [nueva, setNueva] = useState("");
+  const [repetir, setRepetir] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  return (
+    <form
+      className={className}
+      onSubmit={async (e) => {
+        e.preventDefault();
+        const vieja = conocida || actual;
+        if (nueva.length < 8) return setError("La contraseña nueva tiene que tener al menos 8 caracteres.");
+        if (nueva !== repetir) return setError("Las dos contraseñas nuevas no coinciden.");
+        if (nueva === vieja) return setError("Elegí una contraseña distinta a la que te dio la Cámara.");
+        setBusy(true);
+        setError("");
+        const c = portal();
+        try {
+          await c.collection("cuentas").update(cuenta.id, { oldPassword: vieja, password: nueva, passwordConfirm: nueva });
+          // cambiar la contraseña cierra la sesión: se entra de nuevo con la nueva
+          claveDeIngreso = "";
+          await c.collection("cuentas").authWithPassword(cuenta.email, nueva);
+        } catch (err) {
+          setError(/oldPassword/.test(errorMessage(err)) ? "La contraseña actual no es correcta." : errorMessage(err));
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      {cabecera}
+      <h1>Elegí tu contraseña</h1>
+      <p>Entraste con la contraseña que te dio la Cámara. Para seguir, elegí una propia de al menos 8 caracteres.</p>
+      {!conocida && (
+        <label className="field">
+          <span className="field__label">Contraseña actual</span>
+          <input type="password" autoComplete="current-password" required value={actual} onChange={(e) => setActual(e.target.value)} />
+        </label>
+      )}
+      <label className="field">
+        <span className="field__label">Contraseña nueva</span>
+        <input type="password" autoComplete="new-password" required minLength={8} value={nueva} onChange={(e) => setNueva(e.target.value)} />
+      </label>
+      <label className="field">
+        <span className="field__label">Repetila</span>
+        <input type="password" autoComplete="new-password" required minLength={8} value={repetir} onChange={(e) => setRepetir(e.target.value)} />
+      </label>
+      {error && (
+        <p className="form-error" role="alert">
+          {error}
+        </p>
+      )}
+      <button type="submit" className="btn btn--navy btn--block" disabled={busy}>
+        {busy ? "Guardando…" : "Guardar y seguir"}
+      </button>
+      <button type="button" className="login__back" onClick={() => portal().authStore.clear()}>
+        Salir ({cuenta.email})
+      </button>
+    </form>
   );
 }
 
@@ -402,13 +505,7 @@ function Panel({ cuenta }: { cuenta: Cuenta }) {
   const rubros = useRubros();
   const [ficha, setFicha] = useState<FichaRec | null | undefined>(undefined);
 
-  const load = useCallback(async () => {
-    try {
-      setFicha(await portal().collection(coleccion(cuenta.rol)).getFirstListItem<FichaRec>(`cuenta = "${cuenta.id}"`));
-    } catch {
-      setFicha(null);
-    }
-  }, [cuenta.id, cuenta.rol]);
+  const load = useCallback(async () => setFicha(await fichaDe(cuenta)), [cuenta]);
 
   useEffect(() => {
     load();
@@ -492,6 +589,12 @@ export function Portal() {
 
   if (!ready) return null;
   if (!cuenta) return <Login />;
+  if (cuenta.cambiar_clave)
+    return (
+      <main className="login">
+        <CambiarClave cuenta={cuenta} className="login__card" cabecera={<Marca />} />
+      </main>
+    );
   return (
     <ToastProvider>
       <Panel key={cuenta.id} cuenta={cuenta} />

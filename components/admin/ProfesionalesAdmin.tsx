@@ -5,7 +5,7 @@ import { coincide } from "../../lib/buscar";
 import { errorMessage, fileUrl, pb } from "../../lib/pb-client";
 import { descargarExcel } from "../../lib/excel";
 import { Icon } from "../Icon";
-import { AccesoPortal, AccesosMasivos } from "./AccesoPortal";
+import { AccesoPortal, AccesosMasivos, HabilitarPortal } from "./AccesoPortal";
 import { Drawer, Empty, Field, Loading, PageHead, Toggle, useConfirm, useToast } from "./ui";
 
 type Profesional = {
@@ -347,6 +347,7 @@ export function ProfesionalesAdmin() {
           </button>
         )}
         <AccesosMasivos coleccion="profesionales" fichas={list} onListo={load} />
+        <HabilitarPortal onListo={load} />
       </div>
 
       {!items ? (
