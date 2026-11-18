@@ -24,6 +24,8 @@ onBootstrap((e) => {
       // altas desde la web (cuentas nuevas): 5 cada 10 minutos por IP
       { label: "cuentas:create", maxRequests: 5, duration: 600, audience: "@guest" },
       { label: "/api/batch", maxRequests: 3, duration: 1 },
+      // validador de socios de la home: 20 búsquedas por minuto por IP (que no se pueda recorrer el padrón)
+      { label: "/api/caph/validar", maxRequests: 20, duration: 60 },
       // Sin límite general de /api/: la web lee el contenido desde el mismo servidor (127.0.0.1) para todos
       // los visitantes, y la importación masiva del panel crea muchos registros seguidos.
     ];

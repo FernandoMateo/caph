@@ -1,44 +1,51 @@
 "use client";
 
-import { useEffect, useId, useMemo, useState } from "react";
-import { PADRON_DEMO, type Asociado } from "../lib/data";
+import { useEffect, useId, useState } from "react";
 import { Icon } from "./Icon";
 
 const EVENT = "caph:validar";
 
-function normalize(s: string) {
-  return s
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[.\s]/g, "");
-}
+/** Lo que devuelve /api/caph/validar (pb_hooks/fichas.js): solo lo necesario para confirmar que es socio. */
+type Resultado = { numero: string; nombre: string; tipo: "asociado" | "profesional"; vigente: boolean };
 
-function search(q: string): Asociado[] {
-  const n = normalize(q);
-  if (n.length < 2) return [];
-  return PADRON_DEMO.filter(
-    (a) => normalize(a.nombre).includes(n) || a.dni.includes(n) || a.numero.replace(/^0+/, "") === n.replace(/^0+/, "")
-  );
-}
+type Estado =
+  | { tipo: "inicio" }
+  | { tipo: "corto" }
+  | { tipo: "buscando" }
+  | { tipo: "error" }
+  | { tipo: "listo"; consulta: string; resultados: Resultado[] };
+
+const largo = (q: string) => q.replace(/[^\p{L}\p{N}@]/gu, "").length;
 
 export function Validador() {
   const id = useId();
   const [q, setQ] = useState("");
-  const [submitted, setSubmitted] = useState("");
+  const [estado, setEstado] = useState<Estado>({ tipo: "inicio" });
+
+  async function buscar(consulta: string) {
+    const c = consulta.trim();
+    if (!c) return setEstado({ tipo: "inicio" });
+    if (largo(c) < 3 && !/\d/.test(c)) return setEstado({ tipo: "corto" });
+    setEstado({ tipo: "buscando" });
+    try {
+      const res = await fetch(`/api/caph/validar?q=${encodeURIComponent(c)}`, { cache: "no-store" });
+      if (!res.ok) throw new Error(String(res.status));
+      const { resultados } = (await res.json()) as { resultados: Resultado[] };
+      setEstado({ tipo: "listo", consulta: c, resultados });
+    } catch {
+      setEstado({ tipo: "error" });
+    }
+  }
 
   useEffect(() => {
     const onEvent = (e: Event) => {
       const v = String((e as CustomEvent).detail ?? "");
       setQ(v);
-      setSubmitted(v);
+      void buscar(v);
     };
     window.addEventListener(EVENT, onEvent);
     return () => window.removeEventListener(EVENT, onEvent);
   }, []);
-
-  const results = useMemo(() => search(submitted), [submitted]);
-  const tooShort = submitted.length > 0 && normalize(submitted).length < 2;
 
   return (
     <div className="validador">
@@ -47,59 +54,61 @@ export function Validador() {
         role="search"
         onSubmit={(e) => {
           e.preventDefault();
-          setSubmitted(q.trim());
+          void buscar(q);
         }}
       >
         <label htmlFor={id} className="field-label">
-          Nombre, DNI o N.º de asociado
+          Nombre o apellido, N.º de asociado o email
         </label>
         <div className="validador__row">
           <div className="validador__field">
             <Icon name="search" className="validador__icon" />
             <input
-            id={id}
-            type="search"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Ej.: Ejemplo, 00000001 o 0001"
-            autoComplete="off"
+              id={id}
+              type="search"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Ej.: Pérez, 45 o nombre@correo.com"
+              autoComplete="off"
+              maxLength={80}
             />
           </div>
-          <button type="submit" className="btn btn--navy">
-            Verificar
+          <button type="submit" className="btn btn--navy" disabled={estado.tipo === "buscando"}>
+            {estado.tipo === "buscando" ? "Buscando…" : "Verificar"}
           </button>
         </div>
       </form>
 
       <div className="validador__results" aria-live="polite">
-        {!submitted && <p className="validador__hint">El resultado aparece acá. La búsqueda no distingue mayúsculas ni acentos.</p>}
-        {tooShort && <p className="validador__hint">Escribí al menos 2 caracteres.</p>}
-        {submitted && !tooShort && results.length === 0 && (
+        {estado.tipo === "inicio" && <p className="validador__hint">El resultado aparece acá. La búsqueda no distingue mayúsculas ni acentos.</p>}
+        {estado.tipo === "corto" && <p className="validador__hint">Escribí al menos 3 letras del nombre o apellido.</p>}
+        {estado.tipo === "error" && <p className="validador__hint">No pudimos consultar el padrón ahora. Probá de nuevo en unos minutos.</p>}
+        {estado.tipo === "listo" && estado.resultados.length === 0 && (
           <div className="validador__empty">
             <p>
-              <strong>No encontramos “{submitted}” en el padrón.</strong>
+              <strong>No encontramos “{estado.consulta}” en el padrón.</strong>
             </p>
-            <p>Revisá cómo lo escribiste o probá con tu DNI. Si creés que es un error, escribinos por WhatsApp.</p>
+            <p>Revisá cómo lo escribiste o probá con el N.º de asociado o el email. Si creés que es un error, escribinos por WhatsApp.</p>
           </div>
         )}
-        {results.length > 0 && (
+        {estado.tipo === "listo" && estado.resultados.length > 0 && (
           <ul className="validador__list">
-            {results.map((a) => (
-              <li key={a.numero}>
-                <span className="validador__num">N.º {a.numero}</span>
-                <span className="validador__name">{a.nombre}</span>
-                <span className="status" data-active={a.activo || undefined}>
-                  <Icon name={a.activo ? "check" : "x"} size={16} />
-                  {a.activo ? "Asociado activo" : "Sin cuota al día"}
+            {estado.resultados.map((a, i) => (
+              <li key={`${a.numero}-${a.nombre}-${i}`}>
+                {a.numero && <span className="validador__num">N.º {a.numero}</span>}
+                <span className="validador__name">
+                  {a.nombre}
+                  <small className="validador__tipo">{a.tipo === "profesional" ? "Profesional" : "Administrador de consorcio asociado"}</small>
+                </span>
+                <span className="status" data-active={a.vigente || undefined}>
+                  <Icon name={a.vigente ? "check" : "x"} size={16} />
+                  {a.vigente ? "Socio activo" : "No vigente"}
                 </span>
               </li>
             ))}
           </ul>
         )}
       </div>
-      <p className="demo-note">
-        Datos de ejemplo: el padrón real de asociados se conecta antes de publicar.
-      </p>
     </div>
   );
 }

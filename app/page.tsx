@@ -129,7 +129,7 @@ export default async function Home() {
                 <article className="tile tile--check" id="administradores" data-reveal data-glow>
                   <h3 className="tile__title">¿Sos asociado? Verificá tu estado</h3>
                   <p className="tile__text">
-                    Buscá por nombre, DNI o número de asociado. Sirve también para que un consorcio confirme a su
+                    Buscá por nombre o apellido, número de asociado o email. Sirve también para que un consorcio confirme a su
                     administrador.
                   </p>
                   <Validador />
@@ -426,7 +426,7 @@ export default async function Home() {
                     <h2 id="pro-title" className="h2">
                       Profesionales asociados <span className="muted">a la Cámara.</span>
                     </h2>
-                    <p className="lede">Administradores y profesionales de la propiedad horizontal. Contactalos directo desde su tarjeta.</p>
+                    <p className="lede">Abogados, contadores, arquitectos y otros profesionales de la propiedad horizontal. Contactalos directo desde su tarjeta.</p>
                   </div>
                   <a className="btn btn--navy" href="/alta">
                     Sumarme al directorio

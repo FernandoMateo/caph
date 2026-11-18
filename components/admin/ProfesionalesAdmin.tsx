@@ -35,14 +35,15 @@ type Profesional = {
 
 type Datos = Omit<Profesional, "id" | "collectionId" | "foto" | "desde" | "estado" | "cuenta" | "expand"> & { desde: string };
 
-const ROLES = { asociado: "Asociado (administrador de consorcios)", profesional: "Profesional" } as const;
+const ROLES = { asociado: "Asociado (administrador de consorcios) · no se publica", profesional: "Profesional · se publica en la web" } as const;
+const TITULO_ASOCIADO = "Administrador de consorcios";
 
 const BLANK: Datos = {
   rol: "asociado",
   nombre: "",
   estudio: "",
   numero: "",
-  titulo: "Administrador de consorcios",
+  titulo: TITULO_ASOCIADO,
   matricula: "",
   localidad: "Santa Fe",
   direccion: "",
@@ -101,7 +102,17 @@ function Form({ initial, onSaved, onCancel }: { initial: Partial<Profesional>; o
           const saved = initial.id
             ? await pb().collection("profesionales").update<Profesional>(initial.id, payload)
             : await pb().collection("profesionales").create<Profesional>(payload);
-          toast("ok", `${saved.nombre} guardado.${saved.activo ? " Ya se ve en la web." : " Está oculto en la web."}`);
+          toast(
+            "ok",
+            `${saved.nombre} guardado.` +
+              (saved.rol === "asociado"
+                ? saved.activo
+                  ? " No se publica en la web, pero el validador lo encuentra."
+                  : " Está dado de baja: el validador lo muestra como no vigente."
+                : saved.activo
+                  ? " Ya se ve en la web."
+                  : " Está oculto en la web.")
+          );
           onSaved(saved);
         } catch (err) {
           toast("error", errorMessage(err));
@@ -114,7 +125,19 @@ function Form({ initial, onSaved, onCancel }: { initial: Partial<Profesional>; o
         <input value={data.nombre} onChange={(e) => set("nombre", e.target.value)} required autoFocus />
       </Field>
       <Field label="Tipo">
-        <select value={data.rol} onChange={(e) => set("rol", e.target.value as Datos["rol"])}>
+        <select
+          value={data.rol}
+          onChange={(e) => {
+            const rol = e.target.value as Datos["rol"];
+            // el título por defecto de un asociado no sirve para un profesional (y al revés)
+            setData((d) => ({
+              ...d,
+              rol,
+              titulo:
+                rol === "profesional" && d.titulo.trim() === TITULO_ASOCIADO ? "" : rol === "asociado" && !d.titulo.trim() ? TITULO_ASOCIADO : d.titulo,
+            }));
+          }}
+        >
           {Object.entries(ROLES).map(([k, v]) => (
             <option key={k} value={k}>
               {v}
@@ -182,7 +205,11 @@ function Form({ initial, onSaved, onCancel }: { initial: Partial<Profesional>; o
       </Field>
       <div className="field" data-wide>
         <Toggle checked={data.verificado} onChange={(v) => set("verificado", v)} label="Asociado verificado por la Cámara" />
-        <Toggle checked={data.activo} onChange={(v) => set("activo", v)} label="Visible en la web" />
+        <Toggle
+          checked={data.activo}
+          onChange={(v) => set("activo", v)}
+          label={data.rol === "asociado" ? "Habilitado (credencial vigente; los asociados no se publican en la web)" : "Visible en la web"}
+        />
         {initial.estado && initial.estado !== "aprobado" && (
           <span className="field__hint">
             Su alta está {initial.estado === "pendiente" ? "pendiente" : "rechazada"}: se aprueba desde <a href="/admin/altas">Altas</a>.

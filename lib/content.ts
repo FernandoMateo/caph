@@ -233,7 +233,8 @@ export async function getProveedores(): Promise<Proveedor[]> {
 
 export async function getProfesionales(): Promise<Profesional[]> {
   try {
-    const items = await list("profesionales", "&filter=" + encodeURIComponent("activo = true && estado = 'aprobado' && oculto_mora = false") + "&sort=nombre");
+    // solo profesionales: los asociados (administradores de consorcio) no se publican, se buscan en el validador
+    const items = await list("profesionales", "&filter=" + encodeURIComponent("activo = true && estado = 'aprobado' && oculto_mora = false && rol = 'profesional'") + "&sort=nombre");
     return items.map((p) => ({
       id: p.id,
       rol: p.rol === "profesional" ? ("profesional" as const) : ("asociado" as const),

@@ -1447,6 +1447,12 @@ input::placeholder {
   font-weight: 600;
   color: var(--c-petrol);
 }
+.validador__tipo {
+  display: block;
+  font-weight: 400;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
 .status {
   display: inline-flex;
   align-items: center;

@@ -6,6 +6,7 @@
 // - Una ficha que carga el dueño queda pendiente y tiene que estar completa (foto, contacto, dirección…).
 // - Si el dueño cambia una ficha ya publicada, sigue publicada y queda marcada para que el panel la revise.
 // - Para que una ficha se vea en la web (aprobada y visible), también desde el panel, tiene que estar completa.
+//   Los asociados (administradores de consorcio) nunca se publican: solo los encuentra el validador.
 //   Aprobada pero oculta puede estar incompleta: así entran las que se importan de una planilla (sin foto).
 
 const PROTEGIDOS = {
@@ -81,6 +82,11 @@ function exigirCompleta(record, coleccion) {
 /** Aprobada y visible: se muestra en la web. */
 function publicada(record) {
   return record.getString("estado") === "aprobado" && record.getBool("activo");
+}
+
+/** Publicada y además de un tipo que se muestra en la web (los asociados no se publican: no se les exige ficha completa). */
+function seMuestra(record, coleccion) {
+  return publicada(record) && (coleccion === "proveedores" || record.getString("rol") === "profesional");
 }
 
 /** Copia del registro original los campos que el dueño no puede cambiar. */
@@ -163,7 +169,7 @@ function crearFicha(e, coleccion) {
   // desde el panel: si no dice otra cosa, la ficha queda aprobada; si además es visible, tiene que estar completa
   if (!r.getString("estado")) r.set("estado", "aprobado");
   if (coleccion === "profesionales" && !r.getString("rol")) r.set("rol", "asociado");
-  if (publicada(r)) exigirCompleta(r, coleccion);
+  if (seMuestra(r, coleccion)) exigirCompleta(r, coleccion);
 }
 
 /** Devuelve true si este cambio aprueba la ficha (para crearle la cuota después de guardar). */
@@ -193,7 +199,7 @@ function actualizarFicha(e, coleccion) {
     return false;
   }
   // pasar a verse en la web (aprobarla visible, o hacer visible una aprobada) exige la ficha completa
-  if (publicada(r) && !publicada(r.original())) exigirCompleta(r, coleccion);
+  if (seMuestra(r, coleccion) && !seMuestra(r.original(), coleccion)) exigirCompleta(r, coleccion);
   return r.getString("estado") === "aprobado" && antes !== "aprobado";
 }
 
@@ -203,4 +209,74 @@ function alAprobar(app, record, coleccion) {
   require(`${__hooks}/contabilidad.js`).suscripcionPorTarifa(app, rol, record.id);
 }
 
-module.exports = { faltantes, crearCuenta, actualizarCuenta, crearFicha, actualizarFicha, alAprobar };
+/**
+ * La cuenta del portal tiene que ser del mismo tipo que su ficha (asociado / profesional): el portal usa ese
+ * tipo para el carnet y el formulario. Si el panel le cambia el tipo a la ficha, se lo cambia a la cuenta.
+ */
+function sincronizarRolCuenta(app, record) {
+  const cuentaId = record.getString("cuenta");
+  const rol = record.getString("rol");
+  if (!cuentaId || (rol !== "asociado" && rol !== "profesional")) return;
+  let cuenta;
+  try {
+    cuenta = app.findRecordById("cuentas", cuentaId);
+  } catch (_) {
+    return;
+  }
+  if (cuenta.getString("rol") === rol) return;
+  cuenta.set("rol", rol);
+  app.save(cuenta);
+}
+
+/* ---------- validador público ---------- */
+
+function normalizar(texto) {
+  return String(texto || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "");
+}
+
+/** N.º de socio comparable: sin espacios, guiones ni ceros adelante ("A-001" = "a1", "0045" = "45"). */
+function numeroComparable(texto) {
+  return normalizar(texto).replace(/[^a-z0-9]/g, "").replace(/^([a-z]*)0+(?=\d)/, "$1");
+}
+
+/**
+ * Busca socios aprobados (asociados y profesionales) por nombre o apellido, N.º de socio o email exacto.
+ * Devuelve solo lo que hace falta para confirmar que existen: N.º, nombre, tipo y si están al día.
+ * No devuelve contacto: los asociados no se publican en la web.
+ */
+function validar(app, consulta) {
+  const q = String(consulta || "").trim().slice(0, 80);
+  const qn = normalizar(q);
+  if (qn.replace(/[^a-z0-9@]/g, "").length < 2) return [];
+  const fichas = app.findRecordsByFilter("profesionales", "estado = 'aprobado'", "nombre", 0, 0);
+
+  let coincide;
+  if (q.includes("@")) {
+    coincide = (r) => normalizar(r.getString("email")).trim() === qn;
+  } else if (/\d/.test(q)) {
+    const n = numeroComparable(q);
+    coincide = (r) => r.getString("numero") !== "" && numeroComparable(r.getString("numero")) === n;
+  } else {
+    const palabras = qn.split(/[^a-z]+/).filter((p) => p.length >= 2);
+    if (!palabras.length || palabras.join("").length < 3) return [];
+    coincide = (r) => {
+      const nombre = normalizar(r.getString("nombre"));
+      return palabras.every((p) => nombre.includes(p));
+    };
+  }
+
+  return fichas
+    .filter(coincide)
+    .slice(0, 10)
+    .map((r) => ({
+      numero: r.getString("numero"),
+      nombre: r.getString("nombre"),
+      tipo: r.getString("rol") === "profesional" ? "profesional" : "asociado",
+      vigente: r.getBool("activo") && !r.getBool("oculto_mora"),
+    }));
+}
+
+module.exports = { faltantes, crearCuenta, actualizarCuenta, crearFicha, actualizarFicha, alAprobar, sincronizarRolCuenta, validar };

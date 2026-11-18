@@ -65,7 +65,8 @@ export async function crearAcceso(coleccion: Coleccion, ficha: FichaAcceso, emai
     const otra = await fichaDeCuenta(cuenta.id, ficha.id);
     if (otra) throw new Error(`Ese email ya es el acceso de ${otra}.`);
     if ((cuenta.rol === "proveedor") !== (rol === "proveedor")) throw new Error("Ese email ya tiene una cuenta de otro tipo (proveedor / persona).");
-    await pb().collection("cuentas").update(cuenta.id, { password: clave, passwordConfirm: clave, estado: "activa", verified: true });
+    // la cuenta toma el tipo de la ficha (asociado / profesional), para que el carnet coincida
+    await pb().collection("cuentas").update(cuenta.id, { password: clave, passwordConfirm: clave, estado: "activa", verified: true, rol });
     vinculada = true;
   } else {
     cuenta = await pb().collection("cuentas").create<Cuenta>({

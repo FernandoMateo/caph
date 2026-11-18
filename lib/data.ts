@@ -208,15 +208,3 @@ export const PROVEEDORES: Proveedor[] = [
   { n: "VOLTO S.A.S", r: "otros", v: true, tel: "3425194298", web: "https://volto.dev", d: "Agentes de inteligencia artificial para atención y reclamos por WhatsApp, Instagram, web y voz." },
   { n: "José Manuel Dios · Libros de datos", r: "otros", v: true, tel: "1144981490", web: "https://www.librosdedatos.com.ar", d: "Libros de actas y registros para administración de consorcios." },
 ];
-
-/* ---------- Validador: DATOS DE EJEMPLO ----------
-   Reemplazar por el padrón real de asociados (API o planilla) antes de publicar. */
-
-export type Asociado = { numero: string; nombre: string; dni: string; activo: boolean };
-
-export const PADRON_DEMO: Asociado[] = [
-  { numero: "0001", nombre: "Ejemplo, Lucía", dni: "00000001", activo: true },
-  { numero: "0002", nombre: "Prueba, Martín", dni: "00000002", activo: true },
-  { numero: "0003", nombre: "Demo, Carolina", dni: "00000003", activo: false },
-  { numero: "0004", nombre: "Muestra, Julián", dni: "00000004", activo: true },
-];

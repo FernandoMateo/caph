@@ -34,6 +34,7 @@ type FichaRec = Partial<Ficha> & {
   revisar: boolean;
   activo: boolean;
   oculto_mora?: boolean;
+  rol?: string;
   numero?: string;
   foto?: string;
   logo?: string;
@@ -50,8 +51,10 @@ function imagen(r: FichaRec, thumb?: string) {
   return f ? portal().files.getURL(r, f, thumb ? { thumb } : undefined) : "";
 }
 
-function datosCarnet(rol: Rol, r: FichaRec, RUBROS: Record<string, string>): DatosCarnet {
-  const persona = rol !== "proveedor";
+function datosCarnet(rolCuenta: Rol, r: FichaRec, RUBROS: Record<string, string>): DatosCarnet {
+  const persona = rolCuenta !== "proveedor";
+  // el tipo de la credencial es el de la ficha (lo decide la Cámara), no el de la cuenta
+  const rol: Rol = persona ? (r.rol === "profesional" ? "profesional" : "asociado") : "proveedor";
   return {
     nombre: r.nombre ?? "",
     subtitulo: persona ? r.titulo || r.estudio || "" : RUBROS[r.rubro ?? ""] ?? "",

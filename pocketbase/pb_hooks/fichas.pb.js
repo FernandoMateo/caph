@@ -22,7 +22,14 @@ onRecordUpdateRequest((e) => {
   const seAprueba = lib.actualizarFicha(e, "profesionales");
   e.next();
   if (seAprueba) lib.alAprobar(e.app, e.record, "profesionales");
+  lib.sincronizarRolCuenta(e.app, e.record);
 }, "profesionales");
+
+// Validador de la home: confirma si alguien es socio (también los asociados, que no se publican).
+routerAdd("GET", "/api/caph/validar", (e) => {
+  const resultados = require(`${__hooks}/fichas.js`).validar(e.app, e.request.url.query().get("q"));
+  return e.json(200, { resultados });
+});
 
 onRecordCreateRequest((e) => {
   require(`${__hooks}/fichas.js`).crearFicha(e, "proveedores");
