@@ -116,6 +116,7 @@ export function CamposFicha({
   fotoActual,
   conNombre,
   contactoObligatorio,
+  soloArquitectos,
 }: {
   rol: Rol;
   ficha: Ficha;
@@ -127,7 +128,10 @@ export function CamposFicha({
   /** Muestra el nombre de la persona (en el alta sale de la cuenta). */
   conNombre?: boolean;
   contactoObligatorio?: boolean;
+  /** Alta de profesionales: solo arquitectos, el título no se edita. */
+  soloArquitectos?: boolean;
 }) {
+  const arquitecto = soloArquitectos && rol === "profesional";
   const persona = rol !== "proveedor";
   const RUBROS = useRubros();
   const [preview, setPreview] = useState("");
@@ -176,10 +180,18 @@ export function CamposFicha({
               {(p) => <input {...p} autoComplete="name" value={ficha.nombre} onChange={(e) => onChange("nombre", e.target.value)} />}
             </Campo>
           )}
-          <Campo label="Profesión o título" hint={rol === "asociado" ? "Ej.: Administrador de consorcios" : "Ej.: Abogada, Contador público"} req>
-            {(p) => <input {...p} value={ficha.titulo} onChange={(e) => onChange("titulo", e.target.value)} />}
+          <Campo
+            label="Profesión o título"
+            hint={arquitecto ? "El alta de profesionales es solo para arquitectos." : rol === "asociado" ? "Ej.: Administrador de consorcios" : "Ej.: Abogada, Contador público"}
+            req
+          >
+            {(p) => <input {...p} value={ficha.titulo} readOnly={arquitecto} onChange={(e) => onChange("titulo", e.target.value)} />}
           </Campo>
-          <Campo label="Matrícula" hint={rol === "asociado" ? "Si tenés." : "Colegio y número. Ej.: CPCE 12345"} req={rol === "profesional"}>
+          <Campo
+            label="Matrícula"
+            hint={rol === "asociado" ? "Si tenés." : arquitecto ? "Colegio de Arquitectos y número. Ej.: CAPSF 12345" : "Colegio y número. Ej.: CPCE 12345"}
+            req={rol === "profesional"}
+          >
             {(p) => <input {...p} value={ficha.matricula} onChange={(e) => onChange("matricula", e.target.value)} />}
           </Campo>
           <Campo label="Estudio o razón social" hint="Opcional.">

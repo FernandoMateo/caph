@@ -12,7 +12,7 @@ export type Seccion =
   | "galeria"
   | "textos";
 
-export type UsuarioPanel = { id: string; email: string; name?: string; admin?: boolean; permisos?: Seccion[] };
+export type UsuarioPanel = { id: string; email: string; name?: string; admin?: boolean; permisos?: Seccion[]; tour_visto?: boolean };
 
 /** Secciones con permiso propio, con lo que habilitan (para el formulario de Equipo). */
 export const SECCIONES: { id: Seccion; nombre: string; detalle: string }[] = [

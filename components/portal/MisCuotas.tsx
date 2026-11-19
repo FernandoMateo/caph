@@ -157,7 +157,7 @@ export function MisCuotas({ rol, fichaId, ocultoMora }: { rol: Rol; fichaId: str
 
   if (!datos)
     return (
-      <section className="portal__card">
+      <section className="portal__card" data-tour="cuotas">
         <h2>Mis cuotas</h2>
         <div className="loading" aria-busy="true">
           <span className="spinner" aria-hidden="true" />
@@ -168,7 +168,7 @@ export function MisCuotas({ rol, fichaId, ocultoMora }: { rol: Rol; fichaId: str
 
   if (!datos.suscripcion && !datos.cuotas.length)
     return (
-      <section className="portal__card" aria-labelledby="cuotas-titulo">
+      <section className="portal__card" aria-labelledby="cuotas-titulo" data-tour="cuotas">
         <h2 id="cuotas-titulo">Mis cuotas</h2>
         <p>{datos.tarifa && !datos.tarifa.cobrar ? "Tu membresía no tiene costo por ahora." : "La Cámara todavía no configuró tu cuota. Cuando lo haga, la vas a ver acá."}</p>
       </section>
@@ -188,7 +188,7 @@ export function MisCuotas({ rol, fichaId, ocultoMora }: { rol: Rol; fichaId: str
           : { texto: "Al día", tono: "next" };
 
   return (
-    <section className="portal__card" aria-labelledby="cuotas-titulo">
+    <section className="portal__card" aria-labelledby="cuotas-titulo" data-tour="cuotas">
       <div className="solicitud__head">
         <h2 id="cuotas-titulo">Mis cuotas</h2>
         <span className="pill" data-state={estado.tono}>

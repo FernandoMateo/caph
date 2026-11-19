@@ -22,8 +22,11 @@ export type Rol = "asociado" | "proveedor" | "profesional";
 export const ROLES: Record<Rol, { titulo: string; texto: string }> = {
   asociado: { titulo: "Administrador de consorcios", texto: "Me asocio a la Cámara como administrador." },
   proveedor: { titulo: "Proveedor", texto: "Ofrezco servicios a consorcios como socio adherente." },
-  profesional: { titulo: "Profesional", texto: "Abogado, contador, arquitecto u otra profesión afín." },
+  profesional: { titulo: "Profesional", texto: "Solo arquitectos matriculados." },
 };
+
+/** El alta de profesionales es solo para arquitectos: el título queda fijo. */
+export const TITULO_ARQUITECTO = "Arquitecto/a";
 
 /** Mensaje legible para los errores del alta (los demás, como en el panel). */
 export function errorAlta(err: unknown, fallback: (err: unknown) => string) {

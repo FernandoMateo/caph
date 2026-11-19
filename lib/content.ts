@@ -259,6 +259,20 @@ export async function getProfesionales(): Promise<Profesional[]> {
   }
 }
 
+/** Administradores de consorcio de la sección "Asociados": solo datos públicos (los elige /api/caph/asociados). */
+export type AsociadoPublico = { id: string; nombre: string; numero: string; estudio: string; localidad: string; web: string; foto: string };
+
+export async function getAsociados(): Promise<AsociadoPublico[]> {
+  try {
+    const res = await fetch(`${PB_URL}/api/caph/asociados`, { cache: "no-store", signal: AbortSignal.timeout(2500) });
+    if (!res.ok) return [];
+    const json = (await res.json()) as { asociados?: AsociadoPublico[] };
+    return (json.asociados ?? []).map((a) => ({ ...a, web: enlace(a.web) }));
+  } catch {
+    return [];
+  }
+}
+
 /** Textos de la home: los cargados en el panel, y para el resto los de lib/textos.ts. */
 export async function getTextos(): Promise<Textos> {
   const textos = textosPorDefecto();

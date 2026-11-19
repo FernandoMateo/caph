@@ -321,6 +321,8 @@ function crearFicha(e, coleccion) {
     if (coleccion === "profesionales") {
       r.set("rol", rol);
       r.set("numero", "");
+      // el alta de profesionales desde la web es solo para arquitectos
+      if (rol === "profesional" && !/arquitect/i.test(r.getString("titulo"))) r.set("titulo", "Arquitecto/a");
     }
     exigirCompleta(r, coleccion);
     return;
@@ -392,6 +394,36 @@ function sincronizarRolCuenta(app, record) {
   app.save(cuenta);
 }
 
+/* ---------- directorio público de asociados ---------- */
+
+/**
+ * Sección "Asociados" de la web: los administradores de consorcio aprobados, visibles y al día.
+ * Devuelve solo nombre, N.º, estudio, localidad, web y foto: ni teléfono, ni email, ni dirección, ni DNI.
+ * (La colección no los lista en público; esta ruta elige qué datos salen.)
+ */
+function asociadosPublicos(app) {
+  const fichas = app.findRecordsByFilter(
+    "profesionales",
+    "rol = 'asociado' && estado = 'aprobado' && activo = true && oculto_mora = false",
+    "nombre",
+    0,
+    0
+  );
+  return fichas.map((r) => {
+    const foto = r.getString("foto");
+    const web = r.getString("web").trim();
+    return {
+      id: r.id,
+      nombre: r.getString("nombre"),
+      numero: r.getString("numero"),
+      estudio: r.getString("estudio"),
+      localidad: r.getString("localidad"),
+      web: /^https?:\/\//i.test(web) ? web : "",
+      foto: foto ? `/api/files/${r.collection().id}/${r.id}/${encodeURIComponent(foto)}?thumb=160x160f` : "",
+    };
+  });
+}
+
 /* ---------- validador público ---------- */
 
 function normalizar(texto) {
@@ -452,6 +484,7 @@ module.exports = {
   alAprobar,
   sincronizarRolCuenta,
   validar,
+  asociadosPublicos,
   puedeHabilitar,
   habilitarPortal,
 };

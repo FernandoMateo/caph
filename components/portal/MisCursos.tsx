@@ -90,7 +90,7 @@ export function MisCursos({ cuentaId, activa }: { cuentaId: string; activa: bool
   const presenciales = datos.inscripciones.filter((i) => i.certificado && datos.otras.has(i.capacitacion));
 
   return (
-    <section className="portal__card" aria-labelledby="cursos-titulo">
+    <section data-tour="cursos" className="portal__card" aria-labelledby="cursos-titulo">
       <h2 id="cursos-titulo">Capacitaciones</h2>
       <ul className="cursos">
         {datos.online.map((cap) => {

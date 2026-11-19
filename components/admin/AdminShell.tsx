@@ -7,6 +7,7 @@ import { errorMessage, pb } from "../../lib/pb-client";
 import { inicio, puede, type UsuarioPanel } from "../../lib/permisos";
 import { Icon } from "../Icon";
 import { LogoMark } from "../Logo";
+import { Tour, type PasoTour } from "../Tour";
 import { ToastProvider } from "./ui";
 
 // secciones del menú, agrupadas: [ruta, nombre, ícono]
@@ -40,6 +41,22 @@ const GRUPOS: { titulo: string; items: [string, string, string][] }[] = [
     titulo: "Administración",
     items: [["/admin/equipo", "Equipo y permisos", "lock"]],
   },
+  {
+    titulo: "Ayuda",
+    items: [["/admin/ayuda", "Instructivo", "help"]],
+  },
+];
+
+/** Recorrido del primer ingreso al panel (los grupos sin permiso o el menú cerrado del teléfono se saltean). */
+const PASOS_PANEL: PasoTour[] = [
+  { titulo: "¡Bienvenido al panel!", texto: "Desde acá se maneja todo lo de la Cámara: socios, cuotas, cursos y la web. Te mostramos dónde está cada cosa." },
+  { selector: ".admin__menu-btn", titulo: "El menú", texto: "En el teléfono las secciones están acá: tocalo para abrirlas." },
+  { selector: '[data-tour="Socios"]', titulo: "Socios", texto: "Altas para aprobar, las fichas de asociados, profesionales y proveedores, sus accesos al portal y la contabilidad de las cuotas." },
+  { selector: '[data-tour="Formación"]', titulo: "Formación", texto: "La agenda de capacitaciones de la web y los cursos online que se hacen desde el portal." },
+  { selector: '[data-tour="Web"]', titulo: "La web", texto: "Honorarios, galería y textos de la página. Lo que cambies acá se ve enseguida en caphsf.ar." },
+  { selector: '[data-tour="Administración"]', titulo: "Equipo", texto: "Quién más usa el panel y qué secciones puede tocar cada uno." },
+  { selector: '[data-tour="Ayuda"]', titulo: "Instructivo", texto: "El paso a paso de cada tarea, con imágenes. Y desde tu nombre, abajo, podés repetir este recorrido." },
+  { selector: ".admin__user", titulo: "Tu sesión", texto: "Ver la web, repetir el recorrido o cerrar sesión." },
 ];
 const NAV = GRUPOS.flatMap((g) => g.items);
 
@@ -132,6 +149,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     return client.authStore.onChange(sync);
   }, []);
 
+  // el recorrido arranca solo la primera vez que entra cada usuario del panel
+  const [recorrido, setRecorrido] = useState(false);
+  const yaVisto = !user || user.tour_visto;
+  useEffect(() => {
+    if (!yaVisto) setRecorrido(true);
+  }, [yaVisto]);
+
   const destino = pathname === "/admin" || pathname === "/admin/" ? inicio(user) : null;
   useEffect(() => {
     if (destino) router.replace(destino);
@@ -168,7 +192,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <div className="admin__panel" id="admin-menu" data-open={menu || undefined}>
             <nav aria-label="Secciones del panel">
               {grupos.map((g) => (
-                <div key={g.titulo} className="admin__group">
+                <div key={g.titulo} className="admin__group" data-tour={g.titulo}>
                   <span className="admin__group-title">{g.titulo}</span>
                   {g.items.map(([href, label, icon]) => (
                     <Link key={href} href={href} aria-current={pathname?.startsWith(href) ? "page" : undefined}>
@@ -185,9 +209,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               </span>
               <span className="admin__who">
                 <span className="admin__email">{user.name || user.email}</span>
-                <a href="/" target="_blank" rel="noopener noreferrer" className="admin__view">
-                  Ver la web <Icon name="link" size={14} />
-                </a>
+                <span className="admin__links">
+                  <a href="/" target="_blank" rel="noopener noreferrer" className="admin__view">
+                    Ver la web <Icon name="link" size={14} />
+                  </a>
+                  <button type="button" className="admin__view" onClick={() => setRecorrido(true)}>
+                    Recorrido
+                  </button>
+                </span>
               </span>
               <button type="button" className="admin__logout" onClick={() => pb().authStore.clear()} title="Cerrar sesión" aria-label="Cerrar sesión">
                 <Icon name="logout" size={18} />
@@ -196,6 +225,15 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </div>
         </aside>
         {menu && <button type="button" className="admin__scrim" aria-label="Cerrar menú" tabIndex={-1} onClick={() => setMenu(false)} />}
+        {recorrido && (
+          <Tour
+            pasos={PASOS_PANEL}
+            onFin={() => {
+              setRecorrido(false);
+              if (!user.tour_visto) pb().collection("users").update(user.id, { tour_visto: true }).catch(() => {});
+            }}
+          />
+        )}
         <main className="admin__main">
           {permitido ? (
             children

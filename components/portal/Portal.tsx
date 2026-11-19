@@ -8,6 +8,7 @@ import { ROLES, portal, type Rol } from "../../lib/portal-client";
 import { ToastProvider, useToast } from "../admin/ui";
 import { Icon } from "../Icon";
 import { LogoMark } from "../Logo";
+import { Tour, type PasoTour } from "../Tour";
 import { Marca } from "./Alta";
 import { CamposFicha, FICHA, datosFicha, validarFicha, type Ficha } from "./CamposFicha";
 import { Carnet, type DatosCarnet } from "./Carnet";
@@ -25,6 +26,8 @@ export type Cuenta = {
   motivo: string;
   /** Entró con una contraseña que le dio la Cámara: tiene que elegir la suya antes de seguir. */
   cambiar_clave?: boolean;
+  /** Ya vio (o salteó) el recorrido del primer ingreso. */
+  tour_visto?: boolean;
 };
 
 export type FichaRec = Partial<Ficha> & {
@@ -449,7 +452,19 @@ function Clave({ email }: { email: string }) {
 
 /* ---------- portal ---------- */
 
-export function BarraPortal({ email, volver }: { email: string; volver?: boolean }) {
+/** Recorrido del primer ingreso al portal (los pasos que no estén en pantalla se saltean). */
+const PASOS_PORTAL: PasoTour[] = [
+  { titulo: "¡Bienvenido a tu portal!", texto: "Te mostramos en un minuto dónde está cada cosa. Podés saltearlo y verlo de nuevo cuando quieras desde “Recorrido”, arriba." },
+  { selector: '[aria-labelledby="carnet-titulo"]', titulo: "Tu credencial", texto: "Tu carnet digital de la Cámara. Tocalo para darlo vuelta y descargalo en PDF para imprimirlo o llevarlo en el teléfono." },
+  { selector: ".compartir", titulo: "Compartí tu tarjeta", texto: "Un link público con tu carnet y tus datos de contacto, para mandar por WhatsApp. Se actualiza solo." },
+  { selector: '[data-tour="cuotas"]', titulo: "Tus cuotas", texto: "Lo que pagaste y lo que tenés pendiente. Si queda una cuota vencida, la credencial deja de estar vigente hasta ponerte al día." },
+  { selector: '[data-tour="cursos"]', titulo: "Capacitaciones online", texto: "Las capacitaciones que podés hacer desde acá, con tu avance y el certificado al terminar." },
+  { selector: '[aria-labelledby="ficha-titulo"]', titulo: "Tu ficha", texto: "Tus datos de contacto y tu foto. Si cambiás algo, la Cámara lo revisa." },
+  { selector: '[aria-labelledby="clave-titulo"]', titulo: "Tu contraseña", texto: "Cambiala cuando quieras. Si te la olvidás, escribile a la Cámara por WhatsApp." },
+  { selector: ".portal__ayuda", titulo: "¿Dudas?", texto: "En “Ayuda” está el instructivo paso a paso, con imágenes, de todo lo que podés hacer en el portal." },
+];
+
+export function BarraPortal({ email, volver, onRecorrido }: { email: string; volver?: boolean; onRecorrido?: () => void }) {
   return (
     <header className="portal__bar">
       <a href={volver ? "/portal" : "/"} className="portal__brand" title={volver ? "Volver a mi portal" : "Ver la web"}>
@@ -462,6 +477,14 @@ export function BarraPortal({ email, volver }: { email: string; volver?: boolean
       </a>
       <div className="portal__user">
         {volver && <a href="/portal">Volver a mi portal</a>}
+        {onRecorrido && (
+          <button type="button" onClick={onRecorrido}>
+            Recorrido
+          </button>
+        )}
+        <a href="/ayuda" className="portal__ayuda">
+          Ayuda
+        </a>
         <span>{email}</span>
         <button type="button" onClick={() => portal().authStore.clear()}>
           Cerrar sesión
@@ -512,10 +535,17 @@ function Panel({ cuenta }: { cuenta: Cuenta }) {
   }, [load]);
 
   const carnet = cuenta.estado === "activa" && ficha?.estado === "aprobado";
+  // el recorrido arranca solo la primera vez, cuando ya cargó la ficha (si no, no hay qué señalar)
+  const [recorrido, setRecorrido] = useState(!cuenta.tour_visto);
+  const finRecorrido = useCallback(() => {
+    setRecorrido(false);
+    if (!cuenta.tour_visto) portal().collection("cuentas").update(cuenta.id, { tour_visto: true }).catch(() => {});
+  }, [cuenta.id, cuenta.tour_visto]);
 
   return (
     <div className="portal">
-      <BarraPortal email={cuenta.email} />
+      <BarraPortal email={cuenta.email} onRecorrido={() => setRecorrido(true)} />
+      {recorrido && ficha !== undefined && <Tour pasos={PASOS_PORTAL} onFin={finRecorrido} />}
 
       <main className="portal__main">
         <div className="portal__hola">

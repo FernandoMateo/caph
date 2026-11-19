@@ -295,9 +295,14 @@ function Revision({ ficha, onListo }: { ficha: Ficha; onListo: (texto: string) =
   );
 }
 
+/** Tipo de una ficha: los proveedores por su colección, las personas por su rol. */
+const tipoFicha = (f: Ficha): Rol => (f.collectionName === "proveedores" ? "proveedor" : f.rol === "profesional" ? "profesional" : "asociado");
+const tipoDe = (s: { cuenta?: Cuenta; ficha?: Ficha }): Rol => (s.ficha ? tipoFicha(s.ficha) : s.cuenta?.rol ?? "asociado");
+
 export function AltasAdmin() {
   const toast = useToast();
   const [datos, setDatos] = useState<{ cuentas: Cuenta[]; fichas: Ficha[]; libres: Record<string, Opcion[]> } | null>(null);
+  const [tipo, setTipo] = useState<Rol | "todos">("todos");
 
   const load = useCallback(async () => {
     try {
@@ -330,13 +335,20 @@ export function AltasAdmin() {
   // cada cuenta pendiente con su ficha; después, las fichas pendientes o rechazadas de cuentas ya activas y los borradores del panel
   const porCuenta = new Map(datos.fichas.filter((f) => f.cuenta).map((f) => [f.cuenta, f]));
   const usadas = new Set<string>();
-  const solicitudes: { cuenta?: Cuenta; ficha?: Ficha }[] = datos.cuentas.map((c) => {
+  const todas: { cuenta?: Cuenta; ficha?: Ficha }[] = datos.cuentas.map((c) => {
     const ficha = porCuenta.get(c.id);
     if (ficha) usadas.add(ficha.id);
     return { cuenta: c, ficha: ficha && ficha.estado !== "aprobado" ? ficha : undefined };
   });
-  for (const f of datos.fichas) if (!usadas.has(f.id) && f.estado !== "aprobado") solicitudes.push({ ficha: f });
-  const revisar = datos.fichas.filter((f) => f.estado === "aprobado" && f.revisar);
+  for (const f of datos.fichas) if (!usadas.has(f.id) && f.estado !== "aprobado") todas.push({ ficha: f });
+  const revisarTodas = datos.fichas.filter((f) => f.estado === "aprobado" && f.revisar);
+
+  // filtro por tipo: asociado / profesional / proveedor
+  const pasa = (r: Rol) => tipo === "todos" || r === tipo;
+  const conteo = (r: Rol) =>
+    todas.filter((s) => tipoDe(s) === r).length + revisarTodas.filter((f) => tipoFicha(f) === r).length;
+  const solicitudes = todas.filter((s) => pasa(tipoDe(s)));
+  const revisar = revisarTodas.filter((f) => pasa(tipoFicha(f)));
 
   return (
     <>
@@ -344,6 +356,19 @@ export function AltasAdmin() {
         title="Altas"
         text="Solicitudes de asociados, proveedores y profesionales. Nada se publica en la web hasta que lo aprobás acá."
       />
+
+      <div className="toolbar">
+        <div className="filtro-tipo" role="group" aria-label="Filtrar por tipo">
+          <button type="button" aria-pressed={tipo === "todos"} onClick={() => setTipo("todos")}>
+            Todos <span>{todas.length + revisarTodas.length}</span>
+          </button>
+          {(["asociado", "profesional", "proveedor"] as Rol[]).map((r) => (
+            <button key={r} type="button" aria-pressed={tipo === r} onClick={() => setTipo(r)}>
+              {ROL[r]} <span>{conteo(r)}</span>
+            </button>
+          ))}
+        </div>
+      </div>
 
       <section className="admin-section">
         <h2>Solicitudes pendientes ({solicitudes.length})</h2>

@@ -1746,6 +1746,41 @@ button.row-link {
   margin-top: 2px;
   color: #1d6b38;
 }
+/* Altas: filtro por tipo (asociado / profesional / proveedor) */
+.filtro-tipo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.filtro-tipo button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 36px;
+  padding: 0.35rem 0.85rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--navy);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.filtro-tipo button span {
+  font-weight: 500;
+  color: var(--muted);
+}
+.filtro-tipo button[aria-pressed="true"] {
+  border-color: var(--navy);
+  background: var(--navy);
+  color: var(--white);
+}
+.filtro-tipo button[aria-pressed="true"] span {
+  color: inherit;
+  opacity: 0.75;
+}
+
 /* "Portal para todos los asociados": se abre debajo de la barra de herramientas */
 .habilitar {
   flex: 1 1 100%;
@@ -1979,6 +2014,18 @@ body:has(.admin) {
 }
 .admin__view {
   font-size: 0.75rem;
+}
+.admin__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.75rem;
+}
+button.admin__view {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  cursor: pointer;
 }
 .admin__logout {
   flex: none;

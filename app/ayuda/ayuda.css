@@ -1,0 +1,62 @@
+/* Página pública de ayuda: barra simple y el instructivo. */
+
+body:has(.ayuda) {
+  background: var(--surface);
+}
+.ayuda {
+  min-height: 100svh;
+  background: var(--surface);
+}
+.ayuda__barra {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 10px max(16px, env(safe-area-inset-left));
+  background: var(--navy);
+  color: var(--white);
+}
+.ayuda__marca {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: inherit;
+  font-weight: 600;
+  text-decoration: none;
+}
+.ayuda__marca svg {
+  width: 34px;
+  height: auto;
+}
+.ayuda__marca small {
+  font-weight: 400;
+  opacity: 0.75;
+}
+.ayuda__barra nav {
+  display: flex;
+  gap: 1rem;
+}
+.ayuda__barra nav a {
+  color: var(--white);
+  text-underline-offset: 3px;
+}
+.ayuda__main {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+  padding: clamp(20px, 4vw, 40px) 16px 56px;
+}
+.ayuda__contacto {
+  margin-top: 2rem;
+  text-align: center;
+  color: var(--text-2);
+}
+.ayuda__contacto a {
+  font-weight: 600;
+  color: var(--navy);
+}
+.ayuda .instructivo__indice a:hover {
+  background: var(--white);
+}

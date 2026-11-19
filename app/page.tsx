@@ -8,7 +8,9 @@ import { Proveedores } from "../components/Proveedores";
 import { Reveal } from "../components/Reveal";
 import { Validador } from "../components/Validador";
 import { LINKS, NOMBRE_LEGAL } from "../lib/data";
+import { Asociados } from "../components/Asociados";
 import {
+  getAsociados,
   getCapacitaciones,
   getGaleria,
   getHonorarios,
@@ -56,7 +58,7 @@ function ordenarAgenda(items: Capacitacion[]) {
 const delay = (ms: number) => ({ "--d": `${ms}ms` }) as React.CSSProperties;
 
 export default async function Home() {
-  const [hon, proveedores, profesionales, capacitaciones, fotos, t, rubros] = await Promise.all([
+  const [hon, proveedores, profesionales, capacitaciones, fotos, t, rubros, asociados] = await Promise.all([
     getHonorarios(),
     getProveedores(),
     getProfesionales(),
@@ -64,6 +66,7 @@ export default async function Home() {
     getGaleria(),
     getTextos(),
     getRubros(),
+    getAsociados(),
   ]);
   const beneficios = renglones(t.beneficios).map(parTitulo);
   const verificados = proveedores.filter((p) => p.v).length;
@@ -157,6 +160,31 @@ export default async function Home() {
                     Ver directorio <Icon name="arrow" size={18} />
                   </span>
                 </a>
+              </div>
+            </div>
+          </section>
+
+          {/* ---------- ASOCIADOS: administradores de consorcio (solo datos públicos) ---------- */}
+          <section className="block" id="asociados" aria-labelledby="aso-title">
+            <div className="wrap">
+              <header className="block__head block__head--row" data-reveal>
+                <div>
+                  <p className="eyebrow">Asociados</p>
+                  <h2 id="aso-title" className="h2">
+                    Administradores de consorcio <span className="muted">asociados a la Cámara.</span>
+                  </h2>
+                  <p className="lede">
+                    Buscá a tu administrador y confirmá que es asociado activo. ¿Sos asociado? Tu credencial y tu estado están en{" "}
+                    <a href="/portal">tu portal</a>.
+                  </p>
+                </div>
+                <a className="btn btn--navy" href={LINKS.asociarse}>
+                  Quiero asociarme
+                  <Icon name="arrow" size={18} />
+                </a>
+              </header>
+              <div data-reveal>
+                <Asociados asociados={asociados} />
               </div>
             </div>
           </section>
@@ -598,7 +626,10 @@ export default async function Home() {
                     <a href={LINKS.profesional}>Alta de profesionales</a>
                   </li>
                   <li>
-                    <a href="#administradores">Verificar asociado</a>
+                    <a href="#asociados">Buscar o verificar asociado</a>
+                  </li>
+                  <li>
+                    <a href="/ayuda">Ayuda e instructivo</a>
                   </li>
                   <li>
                     <a href={hon.pdfUrl} target="_blank" rel="noopener noreferrer">

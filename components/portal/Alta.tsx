@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { errorMessage } from "../../lib/pb-client";
-import { ROLES, errorAlta, portal, type Rol } from "../../lib/portal-client";
+import { ROLES, TITULO_ARQUITECTO, errorAlta, portal, type Rol } from "../../lib/portal-client";
 import { Icon } from "../Icon";
 import { LogoMark } from "../Logo";
 import { Campo, CamposFicha, FICHA, datosFicha, digitos, emailOk, validarFicha, type Ficha } from "./CamposFicha";
@@ -10,7 +10,10 @@ import { TURNSTILE_SITE_KEY, Turnstile } from "./Turnstile";
 
 type Cuenta = { name: string; email: string; password: string; telefono: string; documento: string };
 
-const CUENTA: Cuenta = { name: "", email: "", password: "", telefono: "", documento: "" };
+/** Orden en que se ofrecen los tipos de alta. */
+const TIPOS: Rol[] = ["asociado", "profesional", "proveedor"];
+
+const CUENTA: Cuenta ={ name: "", email: "", password: "", telefono: "", documento: "" };
 
 function validarCuenta(c: Cuenta) {
   if (c.name.trim().length < 3) return "Completá tu nombre y apellido.";
@@ -51,6 +54,25 @@ export function Alta({ rolInicial }: { rolInicial: Rol | null }) {
   const setC = (k: keyof Cuenta, v: string) => setCuenta((x) => ({ ...x, [k]: v }));
   const setF = (k: keyof Ficha, v: string) => setFicha((x) => ({ ...x, [k]: v }));
 
+  // el alta de profesionales es solo para arquitectos: el título queda fijo mientras ese sea el tipo
+  useEffect(() => {
+    setFicha((f) =>
+      rol === "profesional"
+        ? { ...f, titulo: TITULO_ARQUITECTO }
+        : f.titulo === TITULO_ARQUITECTO
+          ? { ...f, titulo: "" }
+          : f
+    );
+  }, [rol]);
+
+  /** Cambia el tipo de alta y lo deja en la dirección (/alta?rol=…), así un link o un recargo abren el mismo. */
+  const elegir = (r: Rol | null) => {
+    setRol(r);
+    setError("");
+    const url = r ? `/alta?rol=${r}` : "/alta";
+    window.history.replaceState(null, "", url);
+  };
+
   if (enviado) {
     return (
       <div className="login__card alta__card">
@@ -79,8 +101,8 @@ export function Alta({ rolInicial }: { rolInicial: Rol | null }) {
         <h1>Sumate a la Cámara</h1>
         <p>¿Cómo querés participar?</p>
         <div className="alta__roles">
-          {(Object.keys(ROLES) as Rol[]).map((r) => (
-            <button key={r} type="button" className="alta__rol" onClick={() => setRol(r)}>
+          {TIPOS.map((r) => (
+            <button key={r} type="button" className="alta__rol" onClick={() => elegir(r)}>
               <strong>{ROLES[r].titulo}</strong>
               <span>{ROLES[r].texto}</span>
               <Icon name="arrow" size={18} />
@@ -154,21 +176,25 @@ export function Alta({ rolInicial }: { rolInicial: Rol | null }) {
       <Marca />
       <div>
         <p className="alta__eyebrow">Alta · {ROLES[rol].titulo}</p>
-        <h1>{sesion ? "Completá tu ficha" : "Creá tu cuenta"}</h1>
+        <h1>{sesion ? "Completá tu ficha" : "Sumate a la Cámara"}</h1>
       </div>
       {sesion ? (
         <p>
           Ya tenés una cuenta iniciada como <strong>{sesion.name}</strong>. Falta tu ficha para que la Cámara la revise.
         </p>
       ) : (
-        <p>
-          Con esta cuenta vas a ver tu carnet, tus cuotas y tus datos.{" "}
-          {!rolInicial && (
-            <button type="button" className="alta__link" onClick={() => setRol(null)}>
-              Cambiar tipo de alta
-            </button>
-          )}
-        </p>
+        <>
+          <div className="alta__tipos" role="radiogroup" aria-label="Me sumo como">
+            {TIPOS.map((r) => (
+              <label key={r} className="alta__tipo" data-activo={rol === r || undefined}>
+                <input type="radio" name="tipo-alta" value={r} checked={rol === r} onChange={() => elegir(r)} />
+                <strong>{r === "asociado" ? "Asociado" : ROLES[r].titulo}</strong>
+                <span>{r === "asociado" ? "Administrador de consorcios" : r === "profesional" ? "Solo arquitectos" : "Empresa o servicio"}</span>
+              </label>
+            ))}
+          </div>
+          <p>Con esta cuenta vas a ver tu carnet, tus cuotas y tus datos.</p>
+        </>
       )}
 
       {!sesion && (
@@ -224,7 +250,7 @@ export function Alta({ rolInicial }: { rolInicial: Rol | null }) {
           <p className="field__hint" data-wide>
             Se publica en la web cuando la Cámara la aprueba.
           </p>
-          <CamposFicha rol={rol} ficha={ficha} onChange={setF} foto={foto} onFoto={setFoto} />
+          <CamposFicha rol={rol} ficha={ficha} onChange={setF} foto={foto} onFoto={setFoto} soloArquitectos />
         </fieldset>
       )}
 

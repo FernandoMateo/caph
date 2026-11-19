@@ -140,6 +140,56 @@
   outline-offset: 2px;
 }
 
+/* selector de tipo dentro del formulario: se puede cambiar sin perder lo cargado */
+.alta__tipos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+.alta__tipo {
+  position: relative;
+  display: grid;
+  gap: 0.1rem;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+  cursor: pointer;
+  transition:
+    background-color 0.2s var(--ease),
+    box-shadow 0.2s var(--ease);
+}
+.alta__tipo input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.alta__tipo strong {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--navy);
+}
+.alta__tipo span {
+  font-size: 0.8125rem;
+  color: var(--text-2);
+}
+.alta__tipo:hover {
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+.alta__tipo[data-activo] {
+  background: var(--white);
+  box-shadow: inset 0 0 0 2px var(--navy);
+}
+.alta__tipo:has(input:focus-visible) {
+  outline: 3px solid var(--navy);
+  outline-offset: 2px;
+}
+@media (max-width: 520px) {
+  .alta__tipos {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .alta__turnstile {
   display: flex;
   justify-content: center;

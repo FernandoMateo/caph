@@ -31,6 +31,11 @@ routerAdd("GET", "/api/caph/validar", (e) => {
   return e.json(200, { resultados });
 });
 
+// Sección "Asociados" de la web: solo los datos que se pueden mostrar (ver fichas.js).
+routerAdd("GET", "/api/caph/asociados", (e) => {
+  return e.json(200, { asociados: require(`${__hooks}/fichas.js`).asociadosPublicos(e.app) });
+});
+
 // Panel: acceso al portal para todos los asociados y proveedores, con una contraseña inicial que cambian al entrar.
 routerAdd("POST", "/api/caph/habilitar-portal", (e) => {
   const lib = require(`${__hooks}/fichas.js`);

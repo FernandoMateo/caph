@@ -2,6 +2,13 @@
 
 const PATHS: Record<string, React.ReactNode> = {
   arrow: <path d="M5 12h14M13 6l6 6-6 6" />,
+  help: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M9.6 9.5a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.1-2.4 3.6" />
+      <path d="M12 17h.01" />
+    </>
+  ),
   "arrow-down": <path d="M12 5v14M6 13l6 6 6-6" />,
   download: (
     <>

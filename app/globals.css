@@ -2157,6 +2157,14 @@ input::placeholder {
   padding: 4px;
   background: var(--white);
 }
+/* asociados: foto de persona, redonda y a sangre */
+.board__logo--persona {
+  border-radius: 50%;
+}
+.board__logo--persona img {
+  object-fit: cover;
+  padding: 0;
+}
 .board__name {
   grid-column: 2 / -1;
   font-weight: 600;
