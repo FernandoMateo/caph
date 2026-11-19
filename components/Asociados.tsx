@@ -4,12 +4,12 @@ import { useId, useMemo, useState } from "react";
 import { coincide } from "../lib/buscar";
 import type { AsociadoPublico } from "../lib/content";
 import { Icon } from "./Icon";
-import { iniciales } from "./Proveedores";
+import { iniciales, telHref, telLabel } from "./Proveedores";
 
 /**
  * Directorio de asociados (administradores de consorcio), con el mismo formato que el de proveedores:
  * filtro por localidad, buscador y un adelanto hasta que se busca o se pide la lista entera.
- * Muestra solo datos públicos: nombre, N.º, estudio, localidad y web.
+ * Muestra nombre, N.º, estudio, localidad, teléfono, email y web (nunca la dirección ni el DNI).
  */
 export function Asociados({ asociados }: { asociados: AsociadoPublico[] }) {
   const searchId = useId();
@@ -27,7 +27,9 @@ export function Asociados({ asociados }: { asociados: AsociadoPublico[] }) {
   const list = useMemo(
     () =>
       asociados.filter(
-        (a) => (localidad === "todas" || a.localidad === localidad) && coincide(q, [a.nombre, a.estudio, a.localidad, a.numero && `N.º ${a.numero}`, a.numero])
+        (a) =>
+          (localidad === "todas" || a.localidad === localidad) &&
+          coincide(q, [a.nombre, a.estudio, a.localidad, a.email, a.numero && `N.º ${a.numero}`, a.numero], [a.telefono])
       ),
     [asociados, localidad, q]
   );
@@ -48,10 +50,10 @@ export function Asociados({ asociados }: { asociados: AsociadoPublico[] }) {
         </div>
         <div className="board__search">
           <label htmlFor={searchId} className="sr-only">
-            Buscar asociado por nombre, estudio, localidad o N.º
+            Buscar asociado por nombre, estudio, localidad, teléfono o N.º
           </label>
           <Icon name="search" size={18} />
-          <input id={searchId} type="search" placeholder="Nombre, estudio, localidad o N.º" value={q} onChange={(e) => setQ(e.target.value)} />
+          <input id={searchId} type="search" placeholder="Nombre, localidad, teléfono o N.º" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
       </div>
 
@@ -76,9 +78,21 @@ export function Asociados({ asociados }: { asociados: AsociadoPublico[] }) {
             <span className="board__rubro">{a.numero ? `Asociado N.º ${a.numero}` : "Asociado"}</span>
             {(a.estudio || a.localidad) && <span className="board__desc">{[a.estudio, a.localidad].filter(Boolean).join(" · ")}</span>}
             <span className="board__actions">
-              <a href={`/verificar/${a.id}`} aria-label={`Verificar a ${a.nombre}`} title="Verificar credencial">
+              {a.telefono && (
+                <a href={telHref(a.telefono)} aria-label={`Llamar a ${a.nombre}`}>
+                  <Icon name="phone" size={16} />
+                  <span>{telLabel(a.telefono)}</span>
+                </a>
+              )}
+              {a.email ? (
+                <a href={`mailto:${a.email}`} aria-label={`Escribirle a ${a.nombre} (${a.email})`} title={a.email}>
+                  <Icon name="mail" size={16} />
+                </a>
+              ) : (
+                <span className="board__slot" aria-hidden="true" />
+              )}
+              <a href={`/verificar/${a.id}`} aria-label={`Verificar la credencial de ${a.nombre}`} title="Verificar credencial">
                 <Icon name="check" size={16} />
-                <span>Verificar</span>
               </a>
               {a.web ? (
                 <a href={a.web} target="_blank" rel="noopener noreferrer" aria-label={`Sitio de ${a.nombre} (abre en otra pestaña)`}>

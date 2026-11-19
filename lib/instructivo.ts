@@ -97,11 +97,11 @@ export const GUIAS_SOCIOS: Guia[] = [
     resumen: "Para consorcios: confirmar que su administrador es asociado activo.",
     pasos: [
       {
-        texto: "En caphsf.ar tocá “Asociados” en el menú. Buscá por nombre, estudio, localidad o N.º de asociado.",
+        texto: "En caphsf.ar tocá “Asociados” en el menú. Buscá por nombre, estudio, localidad, teléfono o N.º de asociado. Desde la fila lo podés llamar o escribirle un email.",
         imagen: "/ayuda/asociados.jpg",
         alt: "Sección Asociados de la web con el buscador",
       },
-      { texto: "Tocá “Verificar” en la fila del asociado para ver si su credencial está vigente hoy." },
+      { texto: "Tocá el ícono ✓ (Verificar credencial) en la fila del asociado para ver si su credencial está vigente hoy." },
       { texto: "También podés usar “¿Sos asociado? Verificá tu estado”, en Herramientas, con el email del asociado." },
     ],
   },
@@ -121,7 +121,7 @@ export const GUIAS_PANEL: Guia[] = [
       { texto: "Revisá los datos de cada solicitud. El N.º de asociado se genera solo al aprobar; si querés, lo podés escribir a mano." },
       {
         texto:
-          "Tocá “Aprobar y publicar”. Los profesionales y proveedores aparecen en la web; los asociados aparecen en la sección Asociados (sin teléfono ni email).",
+          "Tocá “Aprobar y publicar”. Los profesionales y proveedores aparecen en la web; los asociados aparecen en la sección Asociados, con su teléfono y email de contacto (nunca la dirección ni el DNI).",
       },
       { texto: "Si algo está mal, tocá “Rechazar” y escribí el motivo: la persona lo ve en su portal, corrige y vuelve a enviar." },
       { texto: "Si la persona dijo que “ya figura en la web”, elegí su ficha y tocá “Aprobar y vincular”." },

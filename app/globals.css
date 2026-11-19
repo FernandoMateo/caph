@@ -816,8 +816,25 @@ html[data-intro="on"] .site-header {
     background: rgba(63, 179, 226, 0.1);
     color: var(--c-petrol);
   }
+  /* ocho secciones: que ninguna se parta en dos renglones */
+  .site-nav ul a,
+  .site-header__name,
+  .site-nav .btn {
+    white-space: nowrap;
+  }
   .site-nav .btn {
     width: auto;
+  }
+}
+
+/* pantallas medianas: el menú entero entra en una línea */
+@media (min-width: 1000px) and (max-width: 1239px) {
+  .site-nav ul a {
+    padding: 0.5rem 0.55rem;
+    font-size: 0.875rem;
+  }
+  .site-header__name span {
+    display: none;
   }
 }
 

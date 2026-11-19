@@ -259,15 +259,25 @@ export async function getProfesionales(): Promise<Profesional[]> {
   }
 }
 
-/** Administradores de consorcio de la sección "Asociados": solo datos públicos (los elige /api/caph/asociados). */
-export type AsociadoPublico = { id: string; nombre: string; numero: string; estudio: string; localidad: string; web: string; foto: string };
+/** Administradores de consorcio de la sección "Asociados": los datos que elige /api/caph/asociados (sin dirección ni DNI). */
+export type AsociadoPublico = {
+  id: string;
+  nombre: string;
+  numero: string;
+  estudio: string;
+  localidad: string;
+  telefono: string;
+  email: string;
+  web: string;
+  foto: string;
+};
 
 export async function getAsociados(): Promise<AsociadoPublico[]> {
   try {
     const res = await fetch(`${PB_URL}/api/caph/asociados`, { cache: "no-store", signal: AbortSignal.timeout(2500) });
     if (!res.ok) return [];
     const json = (await res.json()) as { asociados?: AsociadoPublico[] };
-    return (json.asociados ?? []).map((a) => ({ ...a, web: enlace(a.web) }));
+    return (json.asociados ?? []).map((a) => ({ ...a, telefono: str(a.telefono), email: str(a.email), web: enlace(a.web) }));
   } catch {
     return [];
   }

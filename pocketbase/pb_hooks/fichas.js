@@ -398,7 +398,7 @@ function sincronizarRolCuenta(app, record) {
 
 /**
  * Sección "Asociados" de la web: los administradores de consorcio aprobados, visibles y al día.
- * Devuelve solo nombre, N.º, estudio, localidad, web y foto: ni teléfono, ni email, ni dirección, ni DNI.
+ * Devuelve nombre, N.º, estudio, localidad, teléfono, email, web y foto: ni dirección, ni DNI/CUIT.
  * (La colección no los lista en público; esta ruta elige qué datos salen.)
  */
 function asociadosPublicos(app) {
@@ -418,6 +418,8 @@ function asociadosPublicos(app) {
       numero: r.getString("numero"),
       estudio: r.getString("estudio"),
       localidad: r.getString("localidad"),
+      telefono: r.getString("telefono").trim(),
+      email: emailValido(r.getString("email")) ? r.getString("email").trim() : "",
       web: /^https?:\/\//i.test(web) ? web : "",
       foto: foto ? `/api/files/${r.collection().id}/${r.id}/${encodeURIComponent(foto)}?thumb=160x160f` : "",
     };
