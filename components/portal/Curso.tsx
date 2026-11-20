@@ -3,14 +3,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { TIPOS_CAPACITACION, ordenar, videoEmbed, type Inscripcion, type Leccion, type Modulo, type Progreso } from "../../lib/cursos";
 import { errorMessage } from "../../lib/pb-client";
-import { portal } from "../../lib/portal-client";
+import { portal, usuarioDe } from "../../lib/portal-client";
 import { ToastProvider, useToast } from "../admin/ui";
 import { Icon } from "../Icon";
 import { bajarCertificado } from "./MisCursos";
 import { BarraPortal } from "./Portal";
 
 type Cap = { id: string; titulo: string; tipo: string; descripcion: string; horas: number; online: boolean; certificado_auto: boolean };
-type Cuenta = { id: string; email: string; estado: string };
+type Cuenta = { id: string; email: string; telefono?: string; estado: string };
 type Datos = { cap: Cap; modulos: Modulo[]; lecciones: Leccion[]; ins: Inscripcion | null; vistas: Map<string, string> };
 
 /** El contenido de una lección: video incrustado, PDF o texto. */
@@ -294,7 +294,7 @@ export function Curso({ capId }: { capId: string }) {
   return (
     <ToastProvider>
       <div className="portal">
-        <BarraPortal email={cuenta.email} volver />
+        <BarraPortal email={usuarioDe(cuenta)} volver />
         <main className="portal__main">
           <Contenido capId={capId} cuenta={cuenta} />
         </main>

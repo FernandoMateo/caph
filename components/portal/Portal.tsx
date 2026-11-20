@@ -4,7 +4,7 @@ import { useCallback, useEffect, useId, useState, type ReactNode } from "react";
 import { LINKS } from "../../lib/data";
 import { useRubros } from "../../lib/rubros-client";
 import { errorMessage } from "../../lib/pb-client";
-import { ROLES, portal, type Rol } from "../../lib/portal-client";
+import { ROLES, ingresar, portal, usuarioDe, type Rol } from "../../lib/portal-client";
 import { ToastProvider, useToast } from "../admin/ui";
 import { Icon } from "../Icon";
 import { LogoMark } from "../Logo";
@@ -18,7 +18,9 @@ import { MisCursos } from "./MisCursos";
 
 export type Cuenta = {
   id: string;
+  /** Vacío en las cuentas que entran con el teléfono (proveedores sin email). */
   email: string;
+  telefono?: string;
   name: string;
   rol: Rol;
   estado: "pendiente" | "activa" | "rechazada" | "suspendida" | "baja";
@@ -87,11 +89,11 @@ export function datosCarnet(rolCuenta: Rol, r: FichaRec, RUBROS: Record<string, 
 
 /* ---------- ingreso ---------- */
 
-/** Email y contraseña. Lo usan la página del portal y el popup "Asociados" de la web. */
+/** Email (o teléfono) y contraseña. */
 export function FormIngreso({ className, cabecera, pie }: { className: string; cabecera: ReactNode; pie?: ReactNode }) {
   const emailId = useId();
   const passId = useId();
-  const [email, setEmail] = useState("");
+  const [usuario, setUsuario] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -105,7 +107,7 @@ export function FormIngreso({ className, cabecera, pie }: { className: string; c
         setError("");
         try {
           claveDeIngreso = password;
-          await portal().collection("cuentas").authWithPassword(email.trim(), password);
+          await ingresar(usuario, password);
         } catch (err) {
           claveDeIngreso = "";
           const msg = errorMessage(err);
@@ -116,10 +118,25 @@ export function FormIngreso({ className, cabecera, pie }: { className: string; c
       }}
     >
       {cabecera}
-      <label className="field" htmlFor={emailId}>
-        <span className="field__label">Email</span>
-        <input id={emailId} type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} />
-      </label>
+      <div className="field">
+        <label className="field__label" htmlFor={emailId}>
+          Email o teléfono
+        </label>
+        <input
+          id={emailId}
+          type="text"
+          autoComplete="username"
+          autoCapitalize="none"
+          spellCheck={false}
+          required
+          value={usuario}
+          onChange={(e) => setUsuario(e.target.value)}
+          aria-describedby={`${emailId}-ayuda`}
+        />
+        <span id={`${emailId}-ayuda`} className="field__hint">
+          Los proveedores entran con su teléfono, con código de área.
+        </span>
+      </div>
       <label className="field" htmlFor={passId}>
         <span className="field__label">Contraseña</span>
         <input id={passId} type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
@@ -198,7 +215,7 @@ export function CambiarClave({ cuenta, className, cabecera }: { cuenta: Cuenta; 
           await c.collection("cuentas").update(cuenta.id, { oldPassword: vieja, password: nueva, passwordConfirm: nueva });
           // cambiar la contraseña cierra la sesión: se entra de nuevo con la nueva
           claveDeIngreso = "";
-          await c.collection("cuentas").authWithPassword(cuenta.email, nueva);
+          await ingresar(usuarioDe(cuenta), nueva);
         } catch (err) {
           setError(/oldPassword/.test(errorMessage(err)) ? "La contraseña actual no es correcta." : errorMessage(err));
         } finally {
@@ -232,7 +249,7 @@ export function CambiarClave({ cuenta, className, cabecera }: { cuenta: Cuenta; 
         {busy ? "Guardando…" : "Guardar y seguir"}
       </button>
       <button type="button" className="login__back" onClick={() => portal().authStore.clear()}>
-        Salir ({cuenta.email})
+        Salir ({usuarioDe(cuenta)})
       </button>
     </form>
   );
@@ -403,7 +420,7 @@ function MiFicha({ rol, ficha, onGuardada }: { rol: Rol; ficha: FichaRec; onGuar
 
 /* ---------- contraseña ---------- */
 
-function Clave({ email }: { email: string }) {
+function Clave({ cuenta }: { cuenta: Cuenta }) {
   const toast = useToast();
   const [actual, setActual] = useState("");
   const [nueva, setNueva] = useState("");
@@ -411,6 +428,9 @@ function Clave({ email }: { email: string }) {
   return (
     <section className="portal__card" aria-labelledby="clave-titulo">
       <h2 id="clave-titulo">Contraseña</h2>
+      <p>
+        Entrás con {cuenta.email ? "tu email" : "tu teléfono"} <strong>{usuarioDe(cuenta)}</strong> y esta contraseña.
+      </p>
       <form
         className="form-grid"
         onSubmit={async (e) => {
@@ -421,7 +441,7 @@ function Clave({ email }: { email: string }) {
           try {
             await c.collection("cuentas").update(c.authStore.record!.id, { oldPassword: actual, password: nueva, passwordConfirm: nueva });
             // cambiar la contraseña cierra las sesiones: se vuelve a entrar con la nueva
-            await c.collection("cuentas").authWithPassword(email, nueva);
+            await ingresar(usuarioDe(cuenta), nueva);
             setActual("");
             setNueva("");
             toast("ok", "Contraseña cambiada.");
@@ -544,7 +564,7 @@ function Panel({ cuenta }: { cuenta: Cuenta }) {
 
   return (
     <div className="portal">
-      <BarraPortal email={cuenta.email} onRecorrido={() => setRecorrido(true)} />
+      <BarraPortal email={usuarioDe(cuenta)} onRecorrido={() => setRecorrido(true)} />
       {recorrido && ficha !== undefined && <Tour pasos={PASOS_PORTAL} onFin={finRecorrido} />}
 
       <main className="portal__main">
@@ -588,14 +608,14 @@ function Panel({ cuenta }: { cuenta: Cuenta }) {
             </div>
             <div className="portal__col">
               <MiFicha key={ficha.id + ficha.estado} rol={cuenta.rol} ficha={ficha} onGuardada={setFicha} />
-              <Clave email={cuenta.email} />
+              <Clave cuenta={cuenta} />
             </div>
           </div>
         )}
 
         {!ficha && (
           <div className="portal__grid portal__grid--abajo">
-            <Clave email={cuenta.email} />
+            <Clave cuenta={cuenta} />
           </div>
         )}
       </main>

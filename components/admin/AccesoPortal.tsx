@@ -9,6 +9,7 @@ import { Field, useToast } from "./ui";
 // Acceso al portal para fichas que no se dieron de alta solas (cargadas desde el panel o importadas):
 // el panel les crea la cuenta con el email de la ficha y una contraseña provisoria, y se la pasa por
 // WhatsApp o email. Si el email ya tiene cuenta libre, la vincula. La persona la cambia desde su portal.
+// Sin email (los proveedores de la planilla), la cuenta entra con el teléfono de la ficha.
 
 export type Coleccion = "profesionales" | "proveedores";
 
@@ -20,7 +21,7 @@ export type FichaAcceso = {
   telefono: string;
   rol?: string;
   cuenta?: string;
-  expand?: { cuenta?: { id: string; email: string; estado: string } };
+  expand?: { cuenta?: { id: string; email: string; telefono?: string; estado: string } };
 };
 
 export type Credencial = { nombre: string; email: string; clave: string; telefono: string; vinculada: boolean };
@@ -37,6 +38,7 @@ export function claveProvisoria(largo = 10) {
 
 const rolDe = (coleccion: Coleccion, ficha: FichaAcceso) => (coleccion === "proveedores" ? "proveedor" : ficha.rol || "asociado");
 const emailOk = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+const telefonoOk = (s: string) => s.replace(/\D/g, "").length >= 8;
 
 /** Quién usa ya esta cuenta como acceso (otra ficha), o null. */
 async function fichaDeCuenta(cuentaId: string, salvo: string) {
@@ -51,13 +53,15 @@ async function fichaDeCuenta(cuentaId: string, salvo: string) {
 /** Crea (o vincula) la cuenta del portal de una ficha y le pone una contraseña provisoria. */
 export async function crearAcceso(coleccion: Coleccion, ficha: FichaAcceso, emailElegido?: string): Promise<Credencial> {
   const email = (emailElegido ?? ficha.email).trim().toLowerCase();
-  if (!emailOk(email)) throw new Error("La ficha no tiene un email válido.");
+  // sin email entra con el teléfono (el servidor no deja repetir el de otra cuenta sin email)
+  if (email ? !emailOk(email) : !telefonoOk(ficha.telefono))
+    throw new Error(email ? "El email no es válido." : "La ficha no tiene email ni teléfono con código de área.");
   if (ficha.cuenta) throw new Error("Esta ficha ya tiene acceso al portal.");
   const rol = rolDe(coleccion, ficha);
   const clave = claveProvisoria();
 
   // PocketBase no deja filtrar por un email oculto, pero el panel sí lo ve al listar: se busca en la lista
-  const cuentas = await pb().collection("cuentas").getFullList<Cuenta>({ fields: "id,email,rol,estado" });
+  const cuentas = email ? await pb().collection("cuentas").getFullList<Cuenta>({ fields: "id,email,rol,estado" }) : [];
   let cuenta = cuentas.find((c) => c.email.toLowerCase() === email) ?? null;
 
   let vinculada = false;
@@ -89,8 +93,8 @@ export async function crearAcceso(coleccion: Coleccion, ficha: FichaAcceso, emai
 export async function nuevaClave(ficha: FichaAcceso): Promise<Credencial> {
   if (!ficha.cuenta) throw new Error("Esta ficha todavía no tiene acceso al portal.");
   const clave = claveProvisoria();
-  const c = await pb().collection("cuentas").update<Cuenta>(ficha.cuenta, { password: clave, passwordConfirm: clave });
-  return { nombre: ficha.nombre, email: c.email, clave, telefono: ficha.telefono, vinculada: true };
+  const c = await pb().collection("cuentas").update<Cuenta & { telefono: string }>(ficha.cuenta, { password: clave, passwordConfirm: clave });
+  return { nombre: ficha.nombre, email: c.email, clave, telefono: c.email ? ficha.telefono : c.telefono || ficha.telefono, vinculada: true };
 }
 
 function mensaje(c: Credencial) {
@@ -98,7 +102,7 @@ function mensaje(c: Credencial) {
   return (
     `Hola ${c.nombre.split(/\s+/)[0]}! Ya tenés acceso al portal de la Cámara de la Propiedad Horizontal de Santa Fe: ` +
     `tu carnet digital, tu ficha en la web y tus cuotas.\n\n` +
-    `Ingresá en ${portal}\nEmail: ${c.email}\nContraseña: ${c.clave}\n\n` +
+    `Ingresá en ${portal}\n${c.email ? `Email: ${c.email}` : `Teléfono: ${c.telefono}`}\nContraseña: ${c.clave}\n\n` +
     `Es una contraseña provisoria: al entrar por primera vez te pide que elijas una nueva.`
   );
 }
@@ -122,8 +126,8 @@ export function Credenciales({ c }: { c: Credencial }) {
       <dl>
         <dt>Portal</dt>
         <dd>{`${window.location.origin}/portal`}</dd>
-        <dt>Email</dt>
-        <dd>{c.email}</dd>
+        <dt>{c.email ? "Email" : "Teléfono"}</dt>
+        <dd>{c.email || c.telefono}</dd>
         <dt>Contraseña</dt>
         <dd className="acceso__clave">{c.clave}</dd>
       </dl>
@@ -133,12 +137,14 @@ export function Credenciales({ c }: { c: Credencial }) {
             <Icon name="chat" size={16} /> Enviar por WhatsApp
           </a>
         )}
-        <a
-          className="btn btn--ghost-dark btn--sm"
-          href={`mailto:${c.email}?subject=${encodeURIComponent("Tu acceso al portal de la Cámara")}&body=${encodeURIComponent(mensaje(c))}`}
-        >
-          <Icon name="mail" size={16} /> Enviar por email
-        </a>
+        {c.email && (
+          <a
+            className="btn btn--ghost-dark btn--sm"
+            href={`mailto:${c.email}?subject=${encodeURIComponent("Tu acceso al portal de la Cámara")}&body=${encodeURIComponent(mensaje(c))}`}
+          >
+            <Icon name="mail" size={16} /> Enviar por email
+          </a>
+        )}
         <button
           type="button"
           className="btn btn--ghost-dark btn--sm"
@@ -187,7 +193,8 @@ export function AccesoPortal({ coleccion, ficha, onCambio }: { coleccion: Colecc
       ) : ficha.cuenta ? (
         <>
           <p className="section-hint">
-            Entra con <strong>{cuenta?.email ?? "su cuenta"}</strong>
+            Entra con {cuenta && !cuenta.email ? "el teléfono " : ""}
+            <strong>{cuenta ? cuenta.email || cuenta.telefono || ficha.telefono : "su cuenta"}</strong>
             {cuenta && cuenta.estado !== "activa" && ` (cuenta ${cuenta.estado})`}. Si se olvidó la contraseña, generale una provisoria.
           </p>
           <button type="button" className="btn btn--ghost-dark btn--sm" disabled={busy} onClick={() => correr(() => nuevaClave(ficha))}>
@@ -196,7 +203,13 @@ export function AccesoPortal({ coleccion, ficha, onCambio }: { coleccion: Colecc
         </>
       ) : (
         <div className="form-grid">
-          <Field label="Email para entrar" hint="Se crea la cuenta con una contraseña provisoria que le pasás por WhatsApp o email." wide>
+          <Field
+            label="Email para entrar"
+            hint={`Se crea la cuenta con una contraseña provisoria que le pasás por WhatsApp o email.${
+              ficha.telefono ? ` Si lo dejás vacío, entra con su teléfono (${ficha.telefono}).` : ""
+            }`}
+            wide
+          >
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
           </Field>
           <div className="form-actions" data-wide>
@@ -207,7 +220,7 @@ export function AccesoPortal({ coleccion, ficha, onCambio }: { coleccion: Colecc
               onClick={() =>
                 correr(async () => {
                   const c = await crearAcceso(coleccion, ficha, email);
-                  onCambio(c.email);
+                  onCambio(c.email || c.telefono);
                   return c;
                 })
               }
@@ -223,6 +236,8 @@ export function AccesoPortal({ coleccion, ficha, onCambio }: { coleccion: Colecc
 
 type ResultadoHabilitar = {
   creadas: number;
+  /** De las creadas, las que entran con el teléfono (la ficha no tenía email). */
+  conTelefono?: number;
   vinculadas: number;
   reiniciadas: number;
   yaTenian: number;
@@ -260,13 +275,16 @@ export function HabilitarPortal({ onListo }: { onListo: () => void }) {
             </p>
           )}
           <p className="acceso__ok">
-            <Icon name="check" size={18} /> Listo: {res.creadas} cuentas nuevas, {res.vinculadas} vinculadas
+            <Icon name="check" size={18} /> Listo: {res.creadas} cuentas nuevas
+            {res.conTelefono ? ` (${res.conTelefono} entran con su teléfono, porque la ficha no tiene email)` : ""}, {res.vinculadas} vinculadas
             {res.reiniciadas ? `, ${res.reiniciadas} con la contraseña reiniciada` : ""}
             {res.yaTenian ? `. ${res.yaTenian} ya tenían acceso y no se tocaron` : ""}.
           </p>
           {res.omitidas.length > 0 && (
             <>
-              <p className="section-hint">Sin acceso ({res.omitidas.length}): completales el email en la ficha y volvé a correrlo.</p>
+              <p className="section-hint">
+                Sin acceso ({res.omitidas.length}): completales el email (o un teléfono propio) en la ficha y volvé a correrlo.
+              </p>
               <ul className="habilitar__omitidas">
                 {res.omitidas.map((o) => (
                   <li key={o.nombre + o.motivo}>
@@ -297,7 +315,7 @@ export function HabilitarPortal({ onListo }: { onListo: () => void }) {
             if (clave.length < 8) return toast("error", "La contraseña inicial tiene que tener al menos 8 caracteres.");
             const aviso = reiniciar
               ? "Todos los asociados y proveedores, también los que ya entraban, van a quedar con esta contraseña. ¿Seguir?"
-              : "Los asociados y proveedores sin acceso van a poder entrar con su email y esta contraseña. ¿Seguir?";
+              : "Los asociados y proveedores sin acceso van a poder entrar con su email (o su teléfono, si no tienen email) y esta contraseña. ¿Seguir?";
             if (!window.confirm(aviso)) return;
             setBusy(true);
             try {
@@ -346,7 +364,7 @@ export function AccesosMasivos({ coleccion, fichas, onListo }: { coleccion: Cole
       disabled={!!busy}
       title="Crea la cuenta del portal de cada ficha que no tiene, con su email, y baja un Excel con las contraseñas provisorias"
       onClick={async () => {
-        if (!window.confirm(`Se van a crear ${faltan.length} accesos al portal con el email de cada ficha. Después se baja un Excel con las contraseñas provisorias para enviárselas. ¿Seguir?`)) return;
+        if (!window.confirm(`Se van a crear ${faltan.length} accesos al portal con el email de cada ficha (o su teléfono, si no tiene email). Después se baja un Excel con las contraseñas provisorias para enviárselas. ¿Seguir?`)) return;
         const filas: Record<string, unknown>[] = [];
         let ok = 0;
         for (const [i, f] of faltan.entries()) {
@@ -354,7 +372,7 @@ export function AccesosMasivos({ coleccion, fichas, onListo }: { coleccion: Cole
           try {
             const c = await crearAcceso(coleccion, f);
             ok++;
-            filas.push({ nombre: f.nombre, numero: f.numero ?? "", email: c.email, clave: c.clave, telefono: f.telefono, resultado: c.vinculada ? "Vinculada a cuenta existente" : "Creada" });
+            filas.push({ nombre: f.nombre, numero: f.numero ?? "", email: c.email || `Teléfono: ${c.telefono}`, clave: c.clave, telefono: f.telefono, resultado: c.vinculada ? "Vinculada a cuenta existente" : "Creada" });
           } catch (err) {
             filas.push({ nombre: f.nombre, numero: f.numero ?? "", email: f.email, clave: "", telefono: f.telefono, resultado: `Sin crear: ${errorMessage(err)}` });
           }
@@ -367,7 +385,7 @@ export function AccesosMasivos({ coleccion, fichas, onListo }: { coleccion: Cole
               columnas: [
                 { clave: "nombre", titulo: "Nombre", ancho: 30 },
                 { clave: "numero", titulo: "N.º", ancho: 10 },
-                { clave: "email", titulo: "Email", ancho: 32 },
+                { clave: "email", titulo: "Entra con", ancho: 32 },
                 { clave: "clave", titulo: "Contraseña provisoria", ancho: 22 },
                 { clave: "telefono", titulo: "Teléfono", ancho: 16 },
                 { clave: "resultado", titulo: "Resultado", ancho: 44 },

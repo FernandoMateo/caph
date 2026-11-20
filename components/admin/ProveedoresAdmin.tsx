@@ -359,7 +359,7 @@ export function ProveedoresAdmin() {
                     {p.telefono || "—"}
                   </td>
                   <td data-label="Portal">
-                    <button type="button" className="link-btn" onClick={() => setEditing(p)} title={p.expand?.cuenta?.email ?? "Crear acceso desde Editar"}>
+                    <button type="button" className="link-btn" onClick={() => setEditing(p)} title={p.cuenta ? p.expand?.cuenta?.email || `Entra con el teléfono ${p.telefono}` : "Crear acceso desde Editar"}>
                       <span className="pill" data-state={p.cuenta ? "next" : "off"}>
                         {p.cuenta ? "Con acceso" : "Sin acceso"}
                       </span>

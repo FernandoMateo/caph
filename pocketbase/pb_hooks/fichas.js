@@ -36,15 +36,26 @@ function tieneArchivo(record, campo) {
   return record.getString(campo) !== "" || record.getUnsavedFiles(campo).length > 0;
 }
 
-/** Datos obligatorios que le faltan a una ficha para publicarse. */
-function faltantes(record, coleccion) {
+/**
+ * Datos obligatorios que le faltan a una ficha para publicarse.
+ * Proveedores: para mantener su ficha alcanza con nombre, rubro y teléfono (las que vinieron de la planilla no
+ * tienen logo, razón social, dirección ni email); el alta nueva desde la web (`estricta`) pide además logo,
+ * razón social y dirección. El email es opcional, pero si se carga tiene que ser válido.
+ */
+function faltantes(record, coleccion, estricta) {
   const falta = [];
   const vacio = (campo) => record.getString(campo).trim() === "";
   if (coleccion === "proveedores") {
     if (vacio("nombre")) falta.push("nombre de fantasía");
-    if (vacio("razon_social")) falta.push("razón social");
-    if (!tieneArchivo(record, "logo")) falta.push("logo o foto");
     if (vacio("rubro")) falta.push("rubro");
+    if (digitos(record.getString("telefono")) < 8) falta.push("teléfono con código de área");
+    if (!vacio("email") && !emailValido(record.getString("email"))) falta.push("email válido");
+    if (estricta) {
+      if (vacio("razon_social")) falta.push("razón social");
+      if (!tieneArchivo(record, "logo")) falta.push("logo o foto");
+      if (vacio("direccion")) falta.push("dirección");
+    }
+    return falta;
   } else {
     if (vacio("nombre")) falta.push("nombre y apellido");
     if (!tieneArchivo(record, "foto")) falta.push("foto de perfil");
@@ -74,8 +85,8 @@ function sinSvg(record, coleccion) {
   }
 }
 
-function exigirCompleta(record, coleccion) {
-  const falta = faltantes(record, coleccion);
+function exigirCompleta(record, coleccion, estricta) {
+  const falta = faltantes(record, coleccion, estricta);
   if (falta.length) throw new BadRequestError("Faltan datos obligatorios: " + falta.join(", ") + ".");
 }
 
@@ -170,6 +181,8 @@ function crearCuenta(e) {
   e.record.set("motivo", "");
   e.record.set("cambiar_clave", false);
   antiRobots(e);
+  // el alta desde la web siempre lleva email (las cuentas sin email las crea el panel, para entrar con el teléfono)
+  if (!emailValido(e.record.getString("email"))) throw new BadRequestError("Completá un email válido.");
   if (e.record.getString("name").trim().length < 3) throw new BadRequestError("Completá tu nombre y apellido.");
   if (digitos(e.record.getString("telefono")) < 8) throw new BadRequestError("Completá un teléfono con código de área.");
   const doc = digitos(e.record.getString("documento"));
@@ -190,6 +203,128 @@ function actualizarCuenta(e) {
   if (!nueva) return;
   if (e.record.original().validatePassword(nueva)) throw new BadRequestError("Elegí una contraseña distinta a la que tenías.");
   e.record.set("cambiar_clave", false);
+}
+
+/* ---------- ingreso con el teléfono ---------- */
+
+/**
+ * Los teléfonos de un texto ("342 155-123456 / 0342 4561234"), normalizados para compararlos sin importar cómo
+ * se escriban: sin +54, sin el 9 de celular, sin el 0 de larga distancia y sin el 15. Separados por espacio.
+ */
+function telefonosIngreso(texto) {
+  const salida = [];
+  const partes = String(texto || "").split(/[\/,;|]|\s+y\s+|\s+o\s+/i);
+  for (let k = 0; k < partes.length; k++) {
+    let d = partes[k].replace(/\D/g, "");
+    if (d.indexOf("54") === 0 && d.length >= 12) d = d.slice(2);
+    if (d.indexOf("9") === 0 && d.length >= 11) d = d.slice(1);
+    if (d.indexOf("0") === 0) d = d.slice(1);
+    if (d.length === 12) {
+      for (const i of [2, 3, 4]) {
+        if (d.slice(i, i + 2) === "15") {
+          d = d.slice(0, i) + d.slice(i + 2);
+          break;
+        }
+      }
+    }
+    if (d.length >= 8 && salida.indexOf(d) < 0) salida.push(d);
+  }
+  return salida.join(" ");
+}
+
+/** Qué tan bien coincide un teléfono escrito con los de una cuenta: 2 igual, 1 mismos últimos 8 dígitos, 0 no. */
+function coincidenciaTelefono(buscado, telIngreso) {
+  let mejor = 0;
+  for (const t of String(telIngreso || "").split(" ")) {
+    if (!t) continue;
+    if (t === buscado) return 2;
+    if (t.slice(-8) === buscado.slice(-8)) mejor = 1;
+  }
+  return mejor;
+}
+
+/** Cuentas cuyo teléfono de ingreso coincide con `tel` (ya normalizado), con su puntaje. */
+function cuentasConTelefono(app, tel, salvo) {
+  const res = [];
+  const candidatas = app.findRecordsByFilter("cuentas", "tel_ingreso ~ {:u} && id != {:id}", "", 50, 0, { u: tel.slice(-8), id: salvo || "" });
+  for (const c of candidatas) {
+    const p = coincidenciaTelefono(tel, c.getString("tel_ingreso"));
+    if (p) res.push({ cuenta: c, puntaje: p });
+  }
+  return res;
+}
+
+/**
+ * Antes de guardar una cuenta: calcula su teléfono de ingreso. Una cuenta sin email entra con el teléfono, así
+ * que lo necesita, y no puede ser el mismo que el de otra cuenta sin email.
+ */
+function prepararIngreso(app, record) {
+  const tels = telefonosIngreso(record.getString("telefono"));
+  record.set("tel_ingreso", tels);
+  if (record.getString("email").trim()) return;
+  if (!tels) throw new BadRequestError("Sin email, la cuenta necesita un teléfono con código de área para entrar.");
+  for (const t of tels.split(" ")) {
+    for (const m of cuentasConTelefono(app, t, record.id)) {
+      if (!m.cuenta.getString("email").trim())
+        throw new BadRequestError(`El teléfono ${t} ya es el acceso de otra cuenta (${m.cuenta.getString("name")}).`);
+    }
+  }
+}
+
+/** Ingresos fallidos con teléfono por IP: después de 10 en 10 minutos, se frena hasta que pase ese rato. */
+function intentosFallidos(app, ip) {
+  const clave = "caph_ingreso_" + ip;
+  const r = app.store().get(clave);
+  const vigente = r && Date.now() - r.desde < 10 * 60 * 1000;
+  return {
+    frenado: () => {
+      if (vigente && r.n >= 10) throw new ApiError(429, "Demasiados intentos. Esperá unos minutos y probá de nuevo.", null);
+    },
+    sumar: () => app.store().set(clave, vigente ? { n: r.n + 1, desde: r.desde } : { n: 1, desde: Date.now() }),
+    limpiar: () => app.store().remove(clave),
+  };
+}
+
+/**
+ * POST /api/caph/ingresar {telefono, clave}: entra con el teléfono en lugar del email. Si el teléfono coincide
+ * con varias cuentas, decide la contraseña; si aun así quedan dos, se prefiere la que no tiene email.
+ */
+function ingresarConTelefono(e) {
+  const body = e.requestInfo().body || {};
+  const clave = String(body.clave || "");
+  const tel = telefonosIngreso(String(body.telefono || "")).split(" ")[0];
+  const intentos = intentosFallidos(e.app, e.realIP());
+  intentos.frenado();
+  if (!tel) throw new BadRequestError("Escribí tu teléfono con código de área (o tu email).");
+
+  const validas = !clave
+    ? []
+    : cuentasConTelefono(e.app, tel, "").filter((m) => m.cuenta.getString("estado") !== "baja" && m.cuenta.validatePassword(clave));
+  if (!validas.length) {
+    intentos.sumar();
+    throw new BadRequestError("Teléfono o contraseña incorrectos.");
+  }
+  intentos.limpiar();
+  const orden = (m) => m.puntaje * 2 + (m.cuenta.getString("email").trim() ? 0 : 1);
+  validas.sort((a, b) => orden(b) - orden(a));
+  if (validas.length > 1 && orden(validas[0]) === orden(validas[1]))
+    throw new BadRequestError("Hay más de una cuenta con ese teléfono: entrá con tu email o escribinos.");
+  return $apis.recordAuthResponse(e, validas[0].cuenta, "password", null);
+}
+
+/** Si la ficha cambia de teléfono y su cuenta entra con el teléfono (no tiene email), la cuenta lo sigue. */
+function sincronizarTelefonoCuenta(app, record) {
+  const cuentaId = record.getString("cuenta");
+  if (!cuentaId) return;
+  try {
+    const cuenta = app.findRecordById("cuentas", cuentaId);
+    const tel = record.getString("telefono").slice(0, 40);
+    if (cuenta.getString("email").trim() || !telefonosIngreso(tel) || cuenta.getString("telefono") === tel) return;
+    cuenta.set("telefono", tel);
+    app.save(cuenta);
+  } catch (_) {
+    // si el teléfono nuevo es el acceso de otra cuenta, la cuenta sigue entrando con el anterior
+  }
 }
 
 /* ---------- portal para todos ---------- */
@@ -219,7 +354,7 @@ const GRUPOS_PORTAL = [
 function habilitarPortal(app, clave, reiniciar) {
   clave = String(clave || "");
   if (clave.length < 8) throw new BadRequestError("La contraseña inicial tiene que tener al menos 8 caracteres.");
-  const res = { creadas: 0, vinculadas: 0, reiniciadas: 0, yaTenian: 0, omitidas: [], porTipo: {} };
+  const res = { creadas: 0, conTelefono: 0, vinculadas: 0, reiniciadas: 0, yaTenian: 0, omitidas: [], porTipo: {} };
   const col = app.findCollectionByNameOrId("cuentas");
 
   const ponerClave = (cuenta) => {
@@ -253,16 +388,19 @@ function habilitarFicha(app, col, g, f, reiniciar, ponerClave, res) {
         return;
       }
 
-      const email = f.getString("email").trim().toLowerCase();
-      if (!emailValido(email)) {
-        res.omitidas.push({ nombre: nombre, motivo: "No tiene un email válido en la ficha." });
+      // sin email válido, la cuenta entra con el teléfono de la ficha
+      const email = emailValido(f.getString("email")) ? f.getString("email").trim().toLowerCase() : "";
+      if (!email && !telefonosIngreso(f.getString("telefono"))) {
+        res.omitidas.push({ nombre: nombre, motivo: "No tiene email ni teléfono con código de área en la ficha." });
         return;
       }
 
       let cuenta = null;
-      try {
-        cuenta = app.findAuthRecordByEmail("cuentas", email);
-      } catch (_) {}
+      if (email) {
+        try {
+          cuenta = app.findAuthRecordByEmail("cuentas", email);
+        } catch (_) {}
+      }
 
       if (cuenta) {
         const params = { c: cuenta.id, id: f.id };
@@ -285,13 +423,14 @@ function habilitarFicha(app, col, g, f, reiniciar, ponerClave, res) {
         cuenta = new Record(col);
         cuenta.set("email", email);
         cuenta.set("emailVisibility", false);
-        cuenta.set("name", f.getString("nombre").slice(0, 120) || email);
+        cuenta.set("name", f.getString("nombre").slice(0, 120) || email || g.tipo);
         cuenta.set("rol", g.rol);
         cuenta.set("estado", "activa");
         cuenta.set("telefono", f.getString("telefono").slice(0, 40));
         ponerClave(cuenta);
         app.save(cuenta);
         res.creadas++;
+        if (!email) res.conTelefono++;
       }
       f.set("cuenta", cuenta.id);
       app.saveNoValidate(f);
@@ -324,7 +463,7 @@ function crearFicha(e, coleccion) {
       // el alta de profesionales desde la web es solo para arquitectos
       if (rol === "profesional" && !/arquitect/i.test(r.getString("titulo"))) r.set("titulo", "Arquitecto/a");
     }
-    exigirCompleta(r, coleccion);
+    exigirCompleta(r, coleccion, true);
     return;
   }
   // desde el panel: si no dice otra cosa, la ficha queda aprobada; si además es visible, tiene que estar completa
@@ -489,4 +628,7 @@ module.exports = {
   asociadosPublicos,
   puedeHabilitar,
   habilitarPortal,
+  prepararIngreso,
+  ingresarConTelefono,
+  sincronizarTelefonoCuenta,
 };

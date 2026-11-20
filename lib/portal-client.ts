@@ -17,6 +17,25 @@ export function portal() {
   return client;
 }
 
+/**
+ * Entra al portal con el email o con el teléfono (los proveedores, y quien no tenga email, entran con su
+ * teléfono: lo resuelve /api/caph/ingresar en el servidor).
+ */
+export async function ingresar(usuario: string, clave: string) {
+  const u = usuario.trim();
+  const c = portal();
+  if (u.includes("@")) return c.collection("cuentas").authWithPassword(u, clave);
+  const r = await c.send<{ token: string; record: Record<string, unknown> }>("/api/caph/ingresar", {
+    method: "POST",
+    body: { telefono: u, clave },
+  });
+  c.authStore.save(r.token, r.record as never);
+  return r;
+}
+
+/** Con qué entra la cuenta: su email o, si no tiene, su teléfono. */
+export const usuarioDe = (cuenta: { email?: string; telefono?: string }) => cuenta.email || cuenta.telefono || "";
+
 export type Rol = "asociado" | "proveedor" | "profesional";
 
 export const ROLES: Record<Rol, { titulo: string; texto: string }> = {

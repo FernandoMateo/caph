@@ -72,20 +72,26 @@ export function Campo({
 
 /**
  * Qué le falta a la ficha (las mismas reglas que aplica el servidor). `tieneFoto` cuenta la foto ya guardada.
- * Teléfono y email vacíos se aceptan: el alta usa los de la cuenta.
+ * Teléfono y email vacíos se aceptan en el alta: usa los de la cuenta. `contactoObligatorio` es "Mi ficha" del portal.
+ * Proveedores: en el portal alcanza con nombre, rubro y teléfono (logo, razón social, dirección y email son
+ * opcionales); el alta nueva pide además logo, razón social y dirección.
  */
 export function validarFicha(rol: Rol, f: Ficha, tieneFoto: boolean, contactoObligatorio = false) {
-  if (!tieneFoto) return rol === "proveedor" ? "Subí el logo o una foto de tu empresa." : "Subí una foto de perfil.";
   if (rol === "proveedor") {
+    if (!contactoObligatorio && !tieneFoto) return "Subí el logo o una foto de tu empresa.";
     if (!f.nombre.trim()) return "Completá el nombre de fantasía.";
-    if (!f.razon_social.trim()) return "Completá la razón social.";
+    if (!contactoObligatorio && !f.razon_social.trim()) return "Completá la razón social.";
     if (!f.rubro) return "Elegí el rubro.";
-  } else {
-    if (contactoObligatorio && f.nombre.trim().length < 3) return "Completá tu nombre y apellido.";
-    if (!f.titulo.trim()) return "Completá tu profesión o título.";
-    if (rol === "profesional" && !f.matricula.trim()) return "Completá tu matrícula.";
-    if (!f.localidad.trim()) return "Completá la localidad.";
+    if (!contactoObligatorio && !f.direccion.trim()) return "Completá la dirección.";
+    if ((contactoObligatorio || f.telefono) && digitos(f.telefono) < 8) return "El teléfono de contacto tiene que tener código de área.";
+    if (f.email.trim() && !emailOk(f.email)) return "El email de contacto no es válido.";
+    return null;
   }
+  if (!tieneFoto) return "Subí una foto de perfil.";
+  if (contactoObligatorio && f.nombre.trim().length < 3) return "Completá tu nombre y apellido.";
+  if (!f.titulo.trim()) return "Completá tu profesión o título.";
+  if (rol === "profesional" && !f.matricula.trim()) return "Completá tu matrícula.";
+  if (!f.localidad.trim()) return "Completá la localidad.";
   if (!f.direccion.trim()) return "Completá la dirección.";
   if ((contactoObligatorio || f.telefono) && digitos(f.telefono) < 8) return "El teléfono de contacto tiene que tener código de área.";
   if ((contactoObligatorio || f.email) && !emailOk(f.email)) return "El email de contacto no es válido.";
@@ -145,13 +151,15 @@ export function CamposFicha({
 
   const img = preview || fotoActual;
   const contactoHint = contactoObligatorio ? "Se publica en la web." : "Se publica. Si lo dejás vacío, usamos el de tu cuenta.";
+  // proveedor en su portal: solo nombre, rubro y teléfono son obligatorios (ver validarFicha)
+  const provPortal = !persona && !!contactoObligatorio;
 
   return (
     <>
       <div className="field" data-wide>
         <span className="field__label">
           {persona ? "Foto de perfil" : "Logo o foto"}
-          <span aria-hidden="true"> *</span>
+          {!provPortal && <span aria-hidden="true"> *</span>}
         </span>
         <div className="logo-field">
           <span className={`logo-preview${persona ? " logo-preview--round" : ""}`}>
@@ -167,7 +175,9 @@ export function CamposFicha({
             />
             <span className="field__hint">
               {fotoActual && !foto ? "Elegí un archivo solo si querés cambiarla. " : ""}
-              {persona ? "JPG, PNG o WebP, hasta 5 MB. Cuadrada, de frente y con buena luz." : "PNG, JPG o WebP, hasta 3 MB."}
+              {persona
+                ? "JPG, PNG o WebP, hasta 5 MB. Cuadrada, de frente y con buena luz."
+                : `${provPortal ? "Recomendado: con logo tu empresa se distingue en la web. " : ""}PNG, JPG o WebP, hasta 3 MB.`}
             </span>
           </div>
         </div>
@@ -206,7 +216,7 @@ export function CamposFicha({
           <Campo label="Nombre de fantasía" hint="El que se muestra en la web." req>
             {(p) => <input {...p} value={ficha.nombre} onChange={(e) => onChange("nombre", e.target.value)} />}
           </Campo>
-          <Campo label="Razón social" hint="Nombre legal de la empresa." req>
+          <Campo label="Razón social" hint={provPortal ? "Opcional. Nombre legal de la empresa; sale en tu credencial." : "Nombre legal de la empresa."} req={!provPortal}>
             {(p) => <input {...p} value={ficha.razon_social} onChange={(e) => onChange("razon_social", e.target.value)} />}
           </Campo>
           <Campo label="Rubro" req>
@@ -223,13 +233,17 @@ export function CamposFicha({
           </Campo>
         </>
       )}
-      <Campo label={persona ? "Dirección de la oficina" : "Dirección"} hint={persona ? "No cargues tu domicilio particular." : undefined} req>
+      <Campo
+        label={persona ? "Dirección de la oficina" : "Dirección"}
+        hint={persona ? "No cargues tu domicilio particular." : provPortal ? "Opcional." : undefined}
+        req={!provPortal}
+      >
         {(p) => <input {...p} autoComplete="street-address" value={ficha.direccion} onChange={(e) => onChange("direccion", e.target.value)} />}
       </Campo>
       <Campo label="Teléfono de contacto" hint={contactoHint} req={contactoObligatorio}>
         {(p) => <input {...p} type="tel" value={ficha.telefono} onChange={(e) => onChange("telefono", e.target.value)} />}
       </Campo>
-      <Campo label="Email de contacto" hint={contactoHint} req={contactoObligatorio}>
+      <Campo label="Email de contacto" hint={provPortal ? "Opcional." : contactoHint} req={contactoObligatorio && !provPortal}>
         {(p) => <input {...p} type="email" value={ficha.email} onChange={(e) => onChange("email", e.target.value)} />}
       </Campo>
       <Campo label="Web o red social" hint="Opcional." wide>

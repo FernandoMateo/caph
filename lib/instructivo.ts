@@ -31,7 +31,10 @@ export const GUIAS_SOCIOS: Guia[] = [
     resumen: "El primer ingreso con la contraseña que te dio la Cámara.",
     pasos: [
       { texto: "Entrá a caphsf.ar/portal (o tocá “Mi portal” en el menú de la web)." },
-      { texto: "Escribí tu email y la contraseña inicial que te pasó la Cámara, y tocá “Ingresar”." },
+      {
+        texto:
+          "Escribí tu email y la contraseña inicial que te pasó la Cámara, y tocá “Ingresar”. Si sos proveedor, en lugar del email escribí tu teléfono con código de área (por ejemplo 342 4123456), tal como figura en la web.",
+      },
       {
         texto: "La primera vez el portal te pide que elijas tu propia contraseña. Escribila dos veces y tocá “Guardar y seguir”.",
         imagen: "/ayuda/elegir-clave.jpg",
@@ -81,6 +84,7 @@ export const GUIAS_SOCIOS: Guia[] = [
       },
       { texto: "Si tu ficha ya estaba aprobada, el cambio se guarda enseguida y la Cámara lo revisa." },
     ],
+    nota: "Proveedores: solo son obligatorios el nombre, el rubro y el teléfono. Sumá tu logo, la razón social y una descripción de tus servicios para destacarte en la web. Si cambiás el teléfono, desde ahí en adelante entrás con el nuevo.",
   },
   {
     id: "clave",
@@ -138,7 +142,10 @@ export const GUIAS_PANEL: Guia[] = [
         alt: "Formulario de nueva ficha en el panel",
       },
       { texto: "Dejá el N.º vacío: se asigna solo. Tocá “Guardar cambios”." },
-      { texto: "Para darle acceso al portal, abrí la ficha y, en “Acceso al portal”, tocá “Crear acceso al portal”. Pasale el email y la contraseña provisoria por WhatsApp." },
+      {
+        texto:
+          "Para darle acceso al portal, abrí la ficha y, en “Acceso al portal”, tocá “Crear acceso al portal”. Pasale el email y la contraseña provisoria por WhatsApp. Si dejás el email vacío, entra con el teléfono de la ficha.",
+      },
     ],
     nota: "Para proveedores es igual, desde Proveedores → “Nuevo proveedor”.",
   },
@@ -153,8 +160,11 @@ export const GUIAS_PANEL: Guia[] = [
         alt: "Formulario Portal para asociados y proveedores con la contraseña inicial",
       },
       { texto: "Escribí la contraseña inicial (la misma para todos) y tocá “Habilitar portal”." },
-      { texto: "Al terminar, te muestra cuántas cuentas creó y quiénes quedaron afuera (casi siempre por no tener email en la ficha). Completá esos emails y volvé a correrlo: solo crea las que faltan." },
-      { texto: "Avisales a los socios: entran a caphsf.ar/portal con su email y esa contraseña, y el portal les pide que elijan una propia." },
+      {
+        texto:
+          "Al terminar, te muestra cuántas cuentas creó y quiénes quedaron afuera. Las fichas sin email (como los proveedores) entran con su teléfono; quedan afuera las que no tienen email ni teléfono, o las que comparten el teléfono con otra. Corregí esas fichas y volvé a correrlo: solo crea las que faltan.",
+      },
+      { texto: "Avisales a los socios: entran a caphsf.ar/portal con su email (los proveedores, con su teléfono) y esa contraseña, y el portal les pide que elijan una propia." },
     ],
     nota: "Mientras alguien no cambie la contraseña inicial, cualquiera que sepa su email podría entrar a su cuenta: conviene avisarles enseguida.",
   },

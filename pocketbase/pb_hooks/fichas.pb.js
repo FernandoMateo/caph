@@ -12,6 +12,22 @@ onRecordUpdateRequest((e) => {
   e.next();
 }, "cuentas");
 
+// Teléfono de ingreso de la cuenta (las que no tienen email entran con el teléfono), en todo guardado.
+onRecordCreate((e) => {
+  require(`${__hooks}/fichas.js`).prepararIngreso(e.app, e.record);
+  e.next();
+}, "cuentas");
+
+onRecordUpdate((e) => {
+  require(`${__hooks}/fichas.js`).prepararIngreso(e.app, e.record);
+  e.next();
+}, "cuentas");
+
+// Ingreso al portal con el teléfono en lugar del email.
+routerAdd("POST", "/api/caph/ingresar", (e) => {
+  return require(`${__hooks}/fichas.js`).ingresarConTelefono(e);
+});
+
 onRecordCreateRequest((e) => {
   require(`${__hooks}/fichas.js`).crearFicha(e, "profesionales");
   e.next();
@@ -23,6 +39,7 @@ onRecordUpdateRequest((e) => {
   e.next();
   if (seAprueba) lib.alAprobar(e.app, e.record, "profesionales");
   lib.sincronizarRolCuenta(e.app, e.record);
+  lib.sincronizarTelefonoCuenta(e.app, e.record);
 }, "profesionales");
 
 // Validador de la home: confirma si alguien es socio (también los asociados, que no se publican).
@@ -54,4 +71,5 @@ onRecordUpdateRequest((e) => {
   const seAprueba = lib.actualizarFicha(e, "proveedores");
   e.next();
   if (seAprueba) lib.alAprobar(e.app, e.record, "proveedores");
+  lib.sincronizarTelefonoCuenta(e.app, e.record);
 }, "proveedores");
